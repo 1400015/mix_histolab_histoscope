@@ -7,14 +7,7 @@ import {
   Edit2,
   Download,
   Upload,
-  Check,
   X,
-  Layers,
-  HelpCircle,
-  FileCode,
-  FileJson,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 
 interface AnnotationSystemProps {
@@ -59,7 +52,6 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
   slideTitle,
   slideTissue,
   imageSrc,
-  svgContent,
   isDrawingMode,
   onToggleDrawingMode,
   annotations,
@@ -68,8 +60,6 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
   onSelectAnnotation,
 }) => {
   const [editingAnnotation, setEditingAnnotation] = useState<UserAnnotation | null>(null);
-  const [showAnnotationsList, setShowAnnotationsList] = useState<boolean>(true);
-  const [filterCategory, setFilterCategory] = useState<string>('Todas');
 
   // Load saved annotations for this slide from localStorage on mount or slide change
   useEffect(() => {
@@ -267,7 +257,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
             </p>
           </div>
         ) : (
-          annotations.map((ann, idx) => {
+          annotations.map((ann) => {
             const isSelected = selectedAnnotationId === ann.id;
             return (
               <div

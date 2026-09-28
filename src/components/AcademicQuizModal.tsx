@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AcademicQuizQuestion, QuizAttempt } from '../types/histology';
 import {
   X,
@@ -22,6 +22,9 @@ interface AcademicQuizModalProps {
   questions: AcademicQuizQuestion[];
   currentTissueName: string;
   imageBase64?: string;
+  // Análise local crua (motor CV) — obriga o quiz offline a funcionar
+  // (correcção 2026-09-28: o endpoint exigia analysis que nunca era enviado).
+  localAnalysis?: Record<string, unknown> | null;
   onQuestionsUpdated?: (newQuestions: AcademicQuizQuestion[]) => void;
   onOpenProgressDashboard?: () => void;
 }
@@ -32,9 +35,20 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
   questions: initialQuestions,
   currentTissueName,
   imageBase64,
+  localAnalysis,
   onQuestionsUpdated,
   onOpenProgressDashboard,
 }) => {
+  // A11y: fechar com Escape (melhoria 2026-09-28).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   const [questions, setQuestions] = useState<AcademicQuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -164,6 +178,7 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
       setGenerationError(null);
 
       const response = await fetch('/api/generate-quiz', {
+        signal: AbortSignal.timeout(60_000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,11 +187,16 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
           count: 5,
           questionTypes: selectedQuestionType,
           imageBase64: imageBase64 || undefined,
+          // Quiz offline: sem analysis o endpoint devolve 400 (correcção 2026-09-28)
+          analysis: localAnalysis || undefined,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Não foi possível gerar novas perguntas com a IA.');
+        // Melhoria 2026-09-28: mostrar a razão específica do servidor (ex.:
+        // 422 análise indeterminada) em vez de uma mensagem genérica.
+        const errBody = await response.json().catch(() => null);
+        throw new Error(errBody?.error || 'Não foi possível gerar novas perguntas com a IA.');
       }
 
       const data = await response.json();

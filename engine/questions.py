@@ -32,6 +32,12 @@ def generate_questions(analysis: dict[str, Any], n: int = 6, difficulty: str = "
     rng = random.Random(seed)
     f = analysis["features"]
     tissue = analysis["tissue"]
+    # Análise indeterminada não gera perguntas — o erro sobe claro para a UI
+    # (contrato 2026-09-28: estado "indeterminate" do classificador).
+    if tissue == "indeterminate" or not f:
+        raise ValueError(
+            "análise indeterminada — sem tecido classificável para gerar perguntas"
+        )
     t_pt, t_desc = TISSUE_PT.get(tissue, (tissue, ""))
     density = f["nuclei_per_mm2"]
     n_nuc = f["n_nuclei"]
@@ -126,6 +132,39 @@ def generate_questions(analysis: dict[str, Any], n: int = 6, difficulty: str = "
         "answer": correct,
         "explanation": f"Estruturas características do tecido {t_pt}: " + "; ".join(gloss) + ".",
         "topic": "estruturas tecidulares",
+    })
+
+    # Preenchimento de lacunas (novo 2026-09-28) (novo 2026-09-28 — o modo offline só
+    # gerava MCQ e a UI oferecia o filtro "Apenas Preenchimento de Lacunas").
+    pool.append({
+        "type": "fill_blank",
+        "difficulty": "easy",
+        "question": "Na coloração H&E, a ______ é o corante básico que cora os núcleos (basofilia).",
+        "options": ["hematoxilina", "eosina", "safranina", "verde de metilo"],
+        "answer": "hematoxilina",
+        "acceptableAnswers": ["hematoxilina", "hematoxylin"],
+        "explanation": "A hematoxilina é básica e cora componentes ácidos (DNA/RNA) em azul-violeta.",
+        "topic": "técnicas histológicas",
+    })
+    pool.append({
+        "type": "fill_blank",
+        "difficulty": "easy",
+        "question": f"A razão de espaços claros desta imagem é {f['empty_ratio']:.2f}; valores elevados sugerem tecido ______.",
+        "options": ["adiposo", "nervoso", "muscular estriado", "ósseo"],
+        "answer": "adiposo",
+        "acceptableAnswers": ["adiposo", "adipose", "gordo"],
+        "explanation": "Os adipócitos têm um vacúolo lipídico único extraído na preparação — grandes espaços claros com núcleo periférico.",
+        "topic": "classificação tecidular",
+    })
+    pool.append({
+        "type": "fill_blank",
+        "difficulty": "medium",
+        "question": f"A elongação nuclear mediana desta amostra é {elong:.2f}; núcleos fortemente alongados (>3) sugerem células ______ (tecido muscular).",
+        "options": ["fusiformes", "poligonais", "estreladas", "cúbicas"],
+        "answer": "fusiformes",
+        "acceptableAnswers": ["fusiformes", "fusiforme", "alongadas fusiformes"],
+        "explanation": "No músculo liso as células são fusiformes, com núcleo central alongado; a elongação nuclear elevada é o sinal morfométrico.",
+        "topic": "morfologia nuclear",
     })
 
     # 7. Pathology bridge (hard)

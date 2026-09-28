@@ -7,8 +7,7 @@
     "commons": "Histopathology_of_adenocarcinoma_of_colon_-_Case_01.jpg",
     "file": "gallery/colon_adenocarcinoma.jpg",
     "source_title": "Mucinous adenocarcinoma of the colon, HE 1.JPG",
-    "author": "Patho",
-    "license": "CC BY-SA 3.0"
+    "provenance": "unverified"
   },
   {
     "key": "stratified_squamous",
@@ -18,8 +17,10 @@
     "commons": "A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
     "file": "gallery/stratified_squamous.jpg",
     "source_title": "A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
-    "author": "",
-    "license": ""
+    "author": "Photograper09",
+    "license": "CC BY-SA 4.0",
+    "source_url": "",
+    "provenance": "verified"
   },
   {
     "key": "transitional_epithelium",
@@ -29,8 +30,10 @@
     "commons": "A_high-magnification_microscope_image_of_the_urinary_bladder_wall,_clearly_showing_the_thick,_multi-layered_transitional_epithelium_with_its_characteristic_dome-shaped_surface_cells,_all_resting_on_top_of_dense_layers_of_smooth_muscle.jpg",
     "file": "gallery/transitional_epithelium.jpg",
     "source_title": "Trasversal histologic section of human esophagus.jpg",
-    "author": "Lorenzo Apolloni",
-    "license": "CC BY 4.0"
+    "author": "Photograper09",
+    "license": "CC BY-SA 4.0",
+    "source_url": "",
+    "provenance": "verified"
   },
   {
     "key": "connective_loose",
@@ -40,8 +43,7 @@
     "commons": "Loose_connective_tissue_(H&E).jpg",
     "file": "gallery/connective_loose.jpg",
     "source_title": "Granulation tissue in an infected wound, HE 1.JPG",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "dense_connective",
@@ -51,8 +53,7 @@
     "commons": "Dense_regular_connective_tissue_-_tendon.jpg",
     "file": "gallery/dense_connective.jpg",
     "source_title": "Dense_regular_connective_tissue_-_tendon.jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "smooth_muscle",
@@ -62,8 +63,7 @@
     "commons": "Smooth_muscle_(H&E).jpg",
     "file": "gallery/smooth_muscle.jpg",
     "source_title": "Smooth muscle 400x.jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "skeletal_muscle",
@@ -73,8 +73,7 @@
     "commons": "Skeletal_muscle_(H&E).jpg",
     "file": "gallery/skeletal_muscle.jpg",
     "source_title": "Skeletal_muscle_(H&E).jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "cardiac_muscle",
@@ -84,8 +83,7 @@
     "commons": "Cardiac_muscle_(H&E).jpg",
     "file": "gallery/cardiac_muscle.jpg",
     "source_title": "Cardiac_muscle_(H&E).jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "nervous_ganglion",
@@ -95,8 +93,7 @@
     "commons": "Ganglion_(H&E).jpg",
     "file": "gallery/nervous_ganglion.jpg",
     "source_title": "Nervous Tissue Nerve Bundle (40110795540).jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "nervous_cortex",
@@ -106,8 +103,7 @@
     "commons": "Cerebral_cortex_(H&E).jpg",
     "file": "gallery/nervous_cortex.jpg",
     "source_title": "Cerebral_cortex_(H&E).jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "adipose_tissue",
@@ -117,8 +113,7 @@
     "commons": "Adipose_tissue_(H&E).jpg",
     "file": "gallery/adipose_tissue.jpg",
     "source_title": "Endometrium and adipose tissue -- high mag.jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   },
   {
     "key": "liver",
@@ -128,7 +123,6 @@
     "commons": "Liver_(H&E).jpg",
     "file": "gallery/liver.jpg",
     "source_title": "Breast cancer metastasis to liver (1).jpg",
-    "author": "",
-    "license": ""
+    "provenance": "unverified"
   }
 ]

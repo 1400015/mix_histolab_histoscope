@@ -2,15 +2,11 @@ import React, { useState } from 'react';
 import {
   HistologyAnalysis,
   CellularConstituent,
-  DifferentialDiagnosisItem,
 } from '../types/histology';
 import {
   CheckCircle2,
-  AlertTriangle,
   HelpCircle,
   Crosshair,
-  FileText,
-  Layers,
   Sparkles,
   Info,
   ShieldAlert,

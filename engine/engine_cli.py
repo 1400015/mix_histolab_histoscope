@@ -38,7 +38,9 @@ def main() -> None:
             if img is None:
                 raise ValueError(f"Não foi possível ler a imagem: {req['imagePath']}")
             result = analyze_image(img)
-            result.pop("overlay_png_b64", None)
+            # overlay_png_b64 mantém-se desde 2026-09-28: a UI mostra a
+            # segmentação de núcleos por cima da lâmina (só os núcleos
+            # individuais são descartados — payload pesado e redundante).
             result.pop("nuclei", None)
             json.dump({"ok": True, "analysis": result}, sys.stdout, ensure_ascii=False)
 

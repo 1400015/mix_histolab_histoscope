@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
-import { ReferenceTissueSlide, TissueFamily } from '../types/histology';
+import React, { useEffect, useState } from 'react';
+import { ReferenceTissueSlide, HistologyAnalysis } from '../types/histology';
 import { REFERENCE_SLIDES } from '../data/referenceSlides';
 import {
   X,
   Search,
-  Layers,
-  ChevronRight,
-  Sparkles,
   Eye,
   Microscope,
+  Camera,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
 } from 'lucide-react';
+
+/** Lâmina real da galeria (micrografia CC) — contrato de GET /api/gallery. */
+export interface GalleryItem {
+  key: string;
+  title: string;
+  tissue: string;
+  description: string;
+  author?: string;
+  license?: string;
+  source_url?: string;
+  provenance: 'verified' | 'unverified';
+}
+
+/** Análise mapeada devolvida por GET /api/gallery/:key/analysis. */
+export type GalleryAnalysis = HistologyAnalysis & {
+  mode?: string;
+  localAnalysis?: Record<string, unknown> | null;
+};
 
 interface ReferenceAtlasDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectSlide: (slide: ReferenceTissueSlide) => void;
+  onSelectGallerySlide: (item: GalleryItem, analysis: GalleryAnalysis) => void;
   activeSlideId: string;
 }
 
@@ -22,10 +42,55 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
   isOpen,
   onClose,
   onSelectSlide,
+  onSelectGallerySlide,
   activeSlideId,
 }) => {
   const [selectedFamily, setSelectedFamily] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  // Melhoria 2026-09-28: a galeria real (12 micrografias fotográficas) passou
+  // a ser acessível pela UI — antes só os SVG sintéticos eram alcançáveis.
+  const [tab, setTab] = useState<'atlas' | 'gallery'>('atlas');
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[] | null>(null);
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+
+  // A11y: fechar com Escape.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
+  // Carrega a galeria quando o drawer abre (uma vez por abertura).
+  useEffect(() => {
+    if (!isOpen || galleryItems || galleryError) return;
+    fetch('/api/gallery', { signal: AbortSignal.timeout(15_000) })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => setGalleryItems(d.items ?? []))
+      .catch((e) => setGalleryError(e?.name === 'TimeoutError' ? 'O pedido excedeu o tempo limite.' : e.message));
+  }, [isOpen, galleryItems, galleryError]);
+
+  const handleGallerySelect = async (item: GalleryItem) => {
+    setLoadingKey(item.key);
+    setGalleryError(null);
+    try {
+      const res = await fetch(`/api/gallery/${item.key}/analysis`, { signal: AbortSignal.timeout(120_000) });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
+      onSelectGallerySlide(item, body as GalleryAnalysis);
+      onClose();
+    } catch (e: any) {
+      setGalleryError(e?.name === 'TimeoutError' ? 'A análise excedeu o tempo limite.' : e.message || 'Falha ao analisar a lâmina.');
+    } finally {
+      setLoadingKey(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -41,9 +106,19 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
     return matchesFamily && matchesQuery;
   });
 
+  const q = searchQuery.toLowerCase();
+  const filteredGallery = (galleryItems ?? []).filter((item) =>
+    !q || item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q),
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Atlas e galeria histológica"
+        className="relative w-full max-w-xl h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200"
+      >
         {/* Drawer Header */}
         <div className="p-5 border-b border-slate-800 bg-slate-900/90 flex items-start justify-between gap-4">
           <div>
@@ -67,6 +142,27 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
           </button>
         </div>
 
+        {/* Tabs: Atlas esquemático vs Galeria real */}
+        <div className="px-4 pt-3 border-b border-slate-800 bg-slate-950/50 flex gap-1">
+          <button
+            onClick={() => setTab('atlas')}
+            className={`px-3 py-2 text-xs font-semibold rounded-t-md transition-colors ${
+              tab === 'atlas' ? 'bg-slate-900 text-indigo-300 border border-slate-800 border-b-transparent' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Atlas esquemático
+          </button>
+          <button
+            onClick={() => setTab('gallery')}
+            className={`px-3 py-2 text-xs font-semibold rounded-t-md transition-colors flex items-center gap-1.5 ${
+              tab === 'gallery' ? 'bg-slate-900 text-indigo-300 border border-slate-800 border-b-transparent' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Camera className="w-3.5 h-3.5" />
+            Galeria real (fotos)
+          </button>
+        </div>
+
         {/* Filter and Search Bar */}
         <div className="p-4 border-b border-slate-800 space-y-3 bg-slate-950/50">
           {/* Search Input */}
@@ -81,27 +177,114 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
             />
           </div>
 
-          {/* Tissue Family Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-            {families.map((fam) => (
-              <button
-                key={fam}
-                onClick={() => setSelectedFamily(fam)}
-                className={`px-2.5 py-1 rounded-md font-medium whitespace-nowrap transition-colors ${
-                  selectedFamily === fam
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                }`}
-              >
-                {fam}
-              </button>
-            ))}
-          </div>
+          {/* Tissue Family Filter Tabs (só no atlas — a galeria pesquisa por texto) */}
+          {tab === 'atlas' && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
+              {families.map((fam) => (
+                <button
+                  key={fam}
+                  onClick={() => setSelectedFamily(fam)}
+                  className={`px-2.5 py-1 rounded-md font-medium whitespace-nowrap transition-colors ${
+                    selectedFamily === fam
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  {fam}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Slides Grid List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-          {filteredSlides.length === 0 ? (
+          {tab === 'gallery' ? (
+            galleryError ? (
+              <div className="text-center py-12 text-red-400 text-xs">{galleryError}</div>
+            ) : galleryItems === null ? (
+              <div className="text-center py-12 text-slate-500 text-xs">A carregar galeria…</div>
+            ) : filteredGallery.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 text-xs">Nenhuma lâmina encontrada.</div>
+            ) : (
+              filteredGallery.map((item) => {
+                const isActive = activeSlideId === `gallery_${item.key}`;
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => void handleGallerySelect(item)}
+                    className={`group relative rounded-xl border p-3 transition-all cursor-pointer flex gap-3.5 items-center ${
+                      isActive
+                        ? 'bg-indigo-950/40 border-indigo-500/80 ring-1 ring-indigo-500/40'
+                        : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                    }`}
+                  >
+                    {/* Micrografia real */}
+                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-black shrink-0 border border-slate-800 relative shadow-inner">
+                      <img
+                        src={`/gallery-images/${item.key}.jpg`}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        draggable={false}
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 text-[11px] font-medium mb-0.5">
+                        <span className="text-indigo-400">H&E · fotografia real</span>
+                        {item.provenance === 'verified' ? (
+                          <span
+                            className="flex items-center gap-1 text-emerald-400"
+                            title={item.author ? `© ${item.author} · ${item.license}` : undefined}
+                          >
+                            <ShieldCheck className="w-3 h-3" />
+                            {item.author ? `© ${item.author}` : 'origem verificada'}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-amber-400" title="Origem não confirmada no Wikimedia Commons">
+                            <ShieldAlert className="w-3 h-3" />
+                            proveniência por confirmar
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-bold text-sm text-slate-100 truncate group-hover:text-indigo-300 transition-colors">
+                        {item.title}
+                      </h3>
+
+                      <p className="text-xs text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                        {item.description}
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500 font-mono">
+                        <span>{item.tissue}</span>
+                        {item.license && <span aria-hidden="true">·</span>}
+                        {item.license && <span>{item.license}</span>}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 pl-1">
+                      {loadingKey === item.key ? (
+                        <span className="p-2 rounded-lg flex items-center justify-center bg-slate-800 text-indigo-300">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </span>
+                      ) : (
+                        <span
+                          className={`p-2 rounded-lg flex items-center justify-center transition-colors ${
+                            isActive
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-800 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white'
+                          }`}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )
+          ) : filteredSlides.length === 0 ? (
             <div className="text-center py-12 text-slate-500 text-xs">
               Nenhuma lâmina encontrada para os filtros selecionados.
             </div>

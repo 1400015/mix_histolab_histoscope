@@ -61,7 +61,7 @@ KB: dict[str, dict[str, Any]] = {
     },
     "análise automática": {
         "keywords": ["an[áa]lise automatica", "segmenta", "algoritm", "como funciona.*an[áa]lise", "precis", "acur[áa]cia", "detec[çt][ãa]o"],
-        "answer": "**Como funciona a análise automática**: 1) **Desconvolução de cor** (Ruifrok & Johnston) separa os canais de hematoxilina e eosina no espaço de densidade ótica; 2) **Otsu + morfologia + watershed** segmenta núcleos individuais; 3) Extração de **features morfométricas** (áreas, perímetros, circularidades, elongação, razões de estroma/espaço); 4) Um **classificador baseado em regras** pontua cada tipo de tecido e devolve confiança com evidência morfológica. Para máxima precisão clínica, este sistema deve ser usado como ferramenta educacional, não como diagnóstico.",
+        "answer": "**Como funciona a análise automática**: 1) **Desconvolução de cor** (Ruifrok & Johnston) separa os canais de hematoxilina e eosina no espaço de densidade ótica; 2) **Otsu + operadores morfológicos + componentes conexas** segmentam núcleos individuais (sem watershed — correção 2026-09-28: o motor não o usa); 3) Extração de **features morfométricas** (áreas, perímetros, circularidades, elongação, razões de estroma/espaço); 4) Um **classificador baseado em regras** pontua cada tipo de tecido e devolve confiança com evidência morfológica, com estado «indeterminado» quando não há núcleos ou consenso suficientes. Este sistema deve ser usado como ferramenta educacional, não como diagnóstico.",
         "links": ["O que é a desconvolução de cor?", "Como são extraídas as features?"],
     },
     "estroma": {
@@ -71,7 +71,7 @@ KB: dict[str, dict[str, Any]] = {
     },
     "mitose": {
         "keywords": ["mitose", "mit[óo]tic", "figura mit[óo]tica", "prolifera"],
-        "answer": "**Figuras mitóticas** em H&E: cromatina condensada em massas escuras, às vezes com aspeto de placa metafásica. A contagem de mitoses por 10 campos de grande aumento é o **índice mitótico**, parâmetro chave de graduação tumoral. Na análise automática, mitoses aparecem como núcleos com área e densidade ótica atípicamente elevadas — este sistema sinaliza outliers morfométricos para revisão manual.",
+        "answer": "**Figuras mitóticas** em H&E: cromatina condensada em massas escuras, às vezes com aspeto de placa metafásica. A contagem de mitoses por 10 campos de grande aumento é o **índice mitótico**, parâmetro chave de graduação tumoral. Nota honesta (correção 2026-09-28): a análise automática **não deteta nem contabiliza mitoses** — para o índice mitótico faz a contagem manual; o motor apenas mede morfometria nuclear global (área, circularidade, elongação).",
         "links": ["Como reconhecer malignidade?", "O que é o índice mitótico?"],
     },
 }

@@ -113,7 +113,7 @@ const hyalineCartilageSvg = `
 
   <!-- Condrócitos Jovens Achatados Subpericondrais -->
   <g>
-    ${[120, 260, 410, 560, 710].map((cx, idx) => `
+    ${[120, 260, 410, 560, 710].map((cx) => `
       <g transform="translate(${cx}, 125)">
         <ellipse cx="0" cy="0" rx="22" ry="12" fill="#e8d5ec" stroke="#5a216f" stroke-width="1.8"/>
         <ellipse cx="0" cy="0" rx="8" ry="5" fill="#3b0f4d"/>

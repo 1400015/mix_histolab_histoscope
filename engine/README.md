@@ -11,12 +11,12 @@ pip install -r engine/requirements.txt   # numpy + opencv-python-headless
 ## Pipeline
 
 1. **Desconvolução de cor H&E** (Ruifrok & Johnston) — separa canais de hematoxilina (núcleos) e eosina (citoplasma/matriz) no espaço de densidade ótica, normalizados por p99.
-2. **Segmentação de núcleos** — Otsu no canal H → morfologia (abertura/fecho) → componentes conexos com área válida (15–4000 px).
+2. **Segmentação de núcleos** — Otsu no canal H → morfologia (abertura/fecho) → componentes conexos com área válida (15–4000 px). **Sem watershed** (o tutor offline chegou a descrever um — corrigido).
 3. **Morfometria por núcleo** — área, perímetro, circularidade e elongação (elipse ajustada, com filtragem de degenerados).
 4. **Features globais** — densidade nuclear/mm², área mediana, CV, circularidade/elongação medianas, razão de estroma (eosina não-nuclear), razão de espaços claros (vacúolos/lúmen), médias H e E.
 5. **Classificação por regras** — epitelial, conjuntivo, muscular, nervoso, adiposo e hepático, com confiança normalizada e critérios morfológicos de evidência.
 
-**Precisão: 11/12 (92%)** na galeria de referência (`static/gallery/`).
+**Precisão medida: 9/12 (75%)** na galeria de referência — reprodutível com `python engine/eval.py`; 3 lâminas devolvem «indeterminado» quando nenhuma regra dispara com confiança (guardas 2026-09-28). Os **testes** estão em `test_analyzer.py` (`pytest -q engine/`).
 
 ## Interface (CLI stdin/stdout)
 
@@ -40,3 +40,7 @@ O servidor Node invoca via `child_process` (ver `engine_bridge.ts`) — sem port
 ## Licenças
 
 As imagens em `static/gallery/` NÃO são MIT: cada uma mantém a licença original do Wikimedia Commons (CC BY / CC BY-SA / domínio público), com atribuição por imagem em `gallery_meta.json`.
+
+## Proveniência das imagens
+
+`gallery_meta.json` marca cada lâmina com `provenance: "verified"` (origem confirmada na API do Wikimedia Commons) ou `"unverified"` — 10 das 12 são unverified: os nomes de ficheiro reclamados não existem no Commons, por isso **não há créditos que possam ser corretamente atribuídos**. Antes de distribuir publicamente, verificar ou substituir.

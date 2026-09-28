@@ -3,7 +3,6 @@ import {
   X,
   SplitSquareVertical,
   Sparkles,
-  ChevronRight,
   ZoomIn,
   ZoomOut,
   RotateCcw,
@@ -11,11 +10,9 @@ import {
   AlertTriangle,
   HelpCircle,
   Loader2,
-  Eye,
   Info,
-  Layers,
 } from 'lucide-react';
-import { ReferenceTissueSlide, ComparisonResult } from '../types/histology';
+import { ComparisonResult } from '../types/histology';
 import { REFERENCE_SLIDES } from '../data/referenceSlides';
 
 interface SlideComparisonModalProps {
@@ -37,6 +34,16 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
   onClose,
   primarySlide,
 }) => {
+  // A11y: fechar com Escape (melhoria 2026-09-28).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   const [selectedRefId, setSelectedRefId] = useState<string>(
     REFERENCE_SLIDES[0].id === primarySlide.id && REFERENCE_SLIDES.length > 1
       ? REFERENCE_SLIDES[1].id
@@ -78,6 +85,7 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
       setComparisonError(null);
 
       const response = await fetch('/api/compare-slides', {
+          signal: AbortSignal.timeout(90_000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -7,17 +7,18 @@ import {
   Eye,
   EyeOff,
   Sun,
+  Layers,
   Grid,
   Tag,
-  Plus,
   X,
-  Check,
 } from 'lucide-react';
-import { PinpointCoordinate, CellularConstituent, UserAnnotation } from '../types/histology';
+import { CellularConstituent, UserAnnotation } from '../types/histology';
 
 interface MicroscopeViewerProps {
   imageSrc?: string;
   svgContent?: string;
+  // Segmentação de núcleos do motor local (data URL) — melhoria 2026-09-28.
+  overlaySrc?: string;
   title: string;
   staining: string;
   magnification?: string;
@@ -36,9 +37,9 @@ interface MicroscopeViewerProps {
 export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
   imageSrc,
   svgContent,
+  overlaySrc,
   title,
   staining,
-  magnification = '400x',
   constituents,
   selectedConstituent,
   onSelectConstituent,
@@ -59,6 +60,12 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
   const [brightness, setBrightness] = useState<number>(100);
   const [contrast, setContrast] = useState<number>(100);
   const [objectiveLens, setObjectiveLens] = useState<string>('40x');
+  const [showOverlay, setShowOverlay] = useState<boolean>(false);
+
+  // Mostra a segmentação automaticamente quando chega um overlay novo.
+  useEffect(() => {
+    if (overlaySrc) setShowOverlay(true);
+  }, [overlaySrc]);
 
   // Drawing state
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
@@ -68,9 +75,9 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
   // New annotation labeling modal
   const [pendingBox, setPendingBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [newLabel, setNewLabel] = useState<string>('');
-  const [newCategory, setNewCategory] = useState<string>('Estrutura Celular');
+  const [newCategory] = useState<string>('Estrutura Celular');
   const [newNotes, setNewNotes] = useState<string>('');
-  const [newColor, setNewColor] = useState<string>('#f59e0b');
+  const [newColor] = useState<string>('#f59e0b');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -225,6 +232,20 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
             </button>
           ))}
         </div>
+
+        {/* Segmentação (melhoria 2026-09-28) */}
+        {overlaySrc && (
+          <button
+            onClick={() => setShowOverlay((v) => !v)}
+            title="Mostrar/ocultar a segmentação de núcleos do motor local"
+            className={`px-2 py-0.5 text-xs font-medium rounded transition-colors flex items-center gap-1 ${
+              showOverlay ? 'bg-emerald-600 text-white shadow-sm' : 'bg-slate-950/70 text-slate-400 hover:text-slate-200 border border-slate-800'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Segmentação
+          </button>
+        )}
       </div>
 
       {/* Main Viewport */}
@@ -284,7 +305,18 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
             maxHeight: '100%',
           }}
         >
-          {/* Visual Presentation: Either Uploaded Image or Procedural Histological SVG */}
+          {/* Overlay da segmentação (melhoria 2026-09-28) */}
+          {imageSrc && overlaySrc && showOverlay && (
+            <img
+              src={overlaySrc}
+              alt="Segmentação de núcleos (motor local)"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none rounded"
+              style={{ opacity: 0.55, mixBlendMode: 'screen' }}
+              draggable={false}
+            />
+          )}
+
+{/* Visual Presentation: Either Uploaded Image or Procedural Histological SVG */}
           {imageSrc ? (
             <img
               src={imageSrc}

@@ -1,11 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   X,
-  Award,
   TrendingUp,
-  CheckCircle2,
   Calendar,
-  RotateCcw,
   BarChart3,
   BookOpen,
 } from 'lucide-react';
@@ -20,8 +17,16 @@ interface ProgressDashboardModalProps {
 export const ProgressDashboardModal: React.FC<ProgressDashboardModalProps> = ({
   isOpen,
   onClose,
-  onRetakeQuiz,
 }) => {
+  // A11y: fechar com Escape (melhoria 2026-09-28).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   // Read progress from localStorage

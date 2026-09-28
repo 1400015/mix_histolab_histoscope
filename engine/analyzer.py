@@ -98,7 +98,13 @@ def _nucleus_metrics(markers: np.ndarray) -> tuple[list[NucleusInfo], np.ndarray
 
 
 def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, Any]]]:
-    """Robust rule-based scoring over median morphometric features."""
+    """Robust rule-based scoring over median morphometric features.
+
+    Estado "indeterminate": sem núcleos suficientes ou sem consenso entre
+    regras, o resultado honesto é admitir indeterminação — nunca devolver um
+    tecido com confiança inflada (bug corrigido 2026-09-28: imagem vazia
+    devolvia "adipose" a 100%; imagem preta devolvia "epithelial" a 0%).
+    """
     density = features["nuclei_per_mm2"]
     circularity = features["median_circularity"]
     elong = features["median_elongation"]
@@ -108,6 +114,17 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
     hema = features["hematoxylin_mean"]
     empty = features["empty_ratio"]
     cv = features["nucleus_area_cv"]
+
+    # Guarda 1 — campo sem tecido classificável (vazio, preto, não histológico).
+    if features["n_nuclei"] < 15:
+        return "indeterminate", 0.0, [{
+            "type": "insuficiente",
+            "confidence": 0.0,
+            "criteria": [
+                f"apenas {features['n_nuclei']} núcleos segmentados (<15) — "
+                "campo vazio, coloração fraca ou imagem não histológica"
+            ],
+        }]
 
     scores: dict[str, float] = {t: 0.0 for t in TISSUE_TYPES}
     reasons: dict[str, list[str]] = {t: [] for t in TISSUE_TYPES}
@@ -177,6 +194,15 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
          "criteria": reasons[k][:3]}
         for k, v in ranked if v > 0
     ]
+
+    # Guarda 2 — sem consenso entre regras (todas fracas), não forçar tecido.
+    if conf < 0.45:
+        return "indeterminate", round(conf, 3), evidence or [{
+            "type": "ambíguo",
+            "confidence": round(conf, 3),
+            "criteria": ["nenhum tipo de tecido reúne critérios morfológicos claros"],
+        }]
+
     return best, round(conf, 3), evidence
 
 

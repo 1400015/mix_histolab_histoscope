@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   Send,
-  Sparkles,
   Bot,
   User,
   Loader2,
@@ -10,8 +9,6 @@ import {
   Copy,
   Check,
   Lightbulb,
-  Zap,
-  SlidersHorizontal,
 } from 'lucide-react';
 
 interface HistologyTutorModalProps {
@@ -34,6 +31,16 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
   tissueContext,
   imageBase64,
 }) => {
+  // A11y: fechar com Escape (melhoria 2026-09-28).
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'init',
@@ -76,6 +83,7 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
 
     try {
       const response = await fetch('/api/chat', {
+        signal: AbortSignal.timeout(60_000),
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

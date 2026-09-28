@@ -1,12 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Upload,
   Image as ImageIcon,
   Sparkles,
   X,
-  FileQuestion,
   Loader2,
-  CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
 import { HistologyAnalysis } from '../types/histology';
@@ -19,6 +17,9 @@ interface ImageUploaderModalProps {
     analysis: HistologyAnalysis;
     title: string;
     staining: string;
+    // Análise local crua do motor CV (presente no modo offline) — é o que
+    // o endpoint de quiz offline precisa (contrato 2026-09-28).
+    localAnalysis?: Record<string, unknown> | null;
   }) => void;
 }
 
@@ -27,6 +28,19 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
   onClose,
   onAnalysisComplete,
 }) => {
+  // Melhoria 2026-09-28: seletor de modo de análise (auto | local | gemini).
+  const [analysisMode, setAnalysisMode] = useState<'auto' | 'local' | 'gemini'>('auto');
+
+  // A11y: fechar com Escape.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -79,6 +93,9 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
 
   const handleAnalyze = async () => {
     if (!imagePreview) return;
+    // Melhoria 2026-09-28: o endpoint aceita mode auto|local|gemini mas a
+    // UI nunca o enviava — agora há um seletor junto ao botão.
+    const signal = AbortSignal.timeout(150_000);
 
     try {
       setIsAnalyzing(true);
@@ -94,10 +111,12 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
       }, 3500);
 
       const response = await fetch('/api/analyze-histology', {
+      signal,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageBase64: imagePreview,
+          mode: analysisMode,
           mimeType: imageFile?.type || 'image/jpeg',
           tissueHint: tissueHint.trim() || undefined,
           stainHint: stainHint.trim() || undefined,
@@ -118,6 +137,7 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
       onAnalysisComplete({
         imageBase64: imagePreview,
         analysis: result,
+        localAnalysis: (result as { localAnalysis?: Record<string, unknown> }).localAnalysis ?? null,
         title: result.tissueClassification.primaryTissue || 'Lâmina Analisada por IA',
         staining: result.tissueClassification.stainType || stainHint,
       });
@@ -125,7 +145,11 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || 'Falha ao processar a imagem com a IA.');
+      setErrorMessage(
+        err?.name === 'TimeoutError'
+          ? 'O pedido excedeu o tempo limite — tenta novamente (ou usa o modo local, mais rápido).'
+          : err.message || 'Falha ao processar a imagem com a IA.',
+      );
     } finally {
       setIsAnalyzing(false);
       setAnalysisStage('');
@@ -299,6 +323,23 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
             Cancelar
           </button>
 
+          {/* Melhoria 2026-09-28: o endpoint aceita mode auto|local|gemini —
+              a UI nunca o enviava; agora compara motores na mesma lâmina. */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-slate-400">
+              Motor:
+              <select
+                value={analysisMode}
+                onChange={(e) => setAnalysisMode(e.target.value as 'auto' | 'local' | 'gemini')}
+                disabled={isAnalyzing}
+                className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="auto">Auto (local + Gemini)</option>
+                <option value="local">Só motor local (offline)</option>
+                <option value="gemini">Só Gemini</option>
+              </select>
+            </label>
+
           <button
             onClick={handleAnalyze}
             disabled={!imagePreview || isAnalyzing}
@@ -316,6 +357,7 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
               </>
             )}
           </button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,17 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Microscope,
   Upload,
   SplitSquareVertical,
-  BookOpen,
   Tag,
   Layers,
   Sparkles,
   Bot,
   TrendingUp,
   FileText,
-  Search,
-  CheckCircle2,
 } from 'lucide-react';
 import { REFERENCE_SLIDES } from './data/referenceSlides';
 import {
@@ -19,7 +16,6 @@ import {
   HistologyAnalysis,
   CellularConstituent,
   UserAnnotation,
-  AcademicQuizQuestion,
 } from './types/histology';
 import { MicroscopeViewer } from './components/MicroscopeViewer';
 import { AnalysisPanel } from './components/AnalysisPanel';
@@ -27,6 +23,7 @@ import { AnnotationSystem } from './components/AnnotationSystem';
 import { SlideComparisonModal } from './components/SlideComparisonModal';
 import { AcademicQuizModal } from './components/AcademicQuizModal';
 import { ReferenceAtlasDrawer } from './components/ReferenceAtlasDrawer';
+import type { GalleryItem } from './components/ReferenceAtlasDrawer';
 import { ImageUploaderModal } from './components/ImageUploaderModal';
 import { HistologyTutorModal } from './components/HistologyTutorModal';
 import { ProgressDashboardModal } from './components/ProgressDashboardModal';
@@ -42,6 +39,13 @@ export default function App() {
   const [slideSvgContent, setSlideSvgContent] = useState<string | undefined>(defaultSlide.thumbnailSvg);
   const [slideDescription, setSlideDescription] = useState<string>(defaultSlide.description);
   const [currentAnalysis, setCurrentAnalysis] = useState<HistologyAnalysis>(defaultSlide.analysis);
+  // Análise local crua (motor CV) — é o que o endpoint de quiz offline precisa
+  // (contrato 2026-09-28: antes o frontend nunca enviava analysis e o quiz
+  // offline era inalcançável).
+  const [currentLocalAnalysis, setCurrentLocalAnalysis] = useState<Record<string, unknown> | null>(null);
+  // Overlay da segmentação de núcleos (motor local) — mostra "o que o
+  // computador viu" por cima da lâmina (melhoria 2026-09-28).
+  const [overlaySrc, setOverlaySrc] = useState<string | undefined>(undefined);
 
   // Interaction State
   const [selectedConstituent, setSelectedConstituent] = useState<CellularConstituent | null>(null);
@@ -67,9 +71,37 @@ export default function App() {
     setSlideSvgContent(slide.thumbnailSvg);
     setSlideDescription(slide.description);
     setCurrentAnalysis(slide.analysis);
+    // Correcção 2026-09-28: as anotações pertencem à lâmina anterior —
+    // sem limpar, caixas da lâmina A apareciam (e gravavam) na B.
+    setCurrentLocalAnalysis(null);
+    setOverlaySrc(undefined);
+    setUserAnnotations([]);
     setSelectedConstituent(null);
     setSelectedAnnotationId(null);
     setIsDrawingMode(false);
+  };
+
+  // Melhoria 2026-09-28: lâminas reais da galeria (fotos CC) com análise
+  // local mapeada pelo endpoint /api/gallery/:key/analysis.
+  const handleSelectGallerySlide = (
+    item: GalleryItem,
+    mapped: HistologyAnalysis & { localAnalysis?: Record<string, unknown> | null },
+  ) => {
+    setActiveSlideId(`gallery_${item.key}`);
+    setSlideTitle(item.title);
+    setSlideStaining('H&E');
+    setSlideImageSrc(`/gallery-images/${item.key}.jpg`);
+    setSlideSvgContent(undefined);
+    setSlideDescription(item.description);
+    setCurrentAnalysis(mapped);
+    setCurrentLocalAnalysis(mapped.localAnalysis ?? null);
+    const ov = (mapped.localAnalysis as { overlay_png_b64?: string } | null)?.overlay_png_b64;
+    setOverlaySrc(ov ? `data:image/jpeg;base64,${ov}` : undefined);
+    setUserAnnotations([]);
+    setSelectedConstituent(null);
+    setSelectedAnnotationId(null);
+    setIsDrawingMode(false);
+    setRightPanelMode('analysis');
   };
 
   // Receive newly uploaded & analyzed image from ImageUploaderModal
@@ -78,6 +110,7 @@ export default function App() {
     analysis: HistologyAnalysis;
     title: string;
     staining: string;
+    localAnalysis?: Record<string, unknown> | null;
   }) => {
     const uploadId = `upload_${Date.now()}`;
     setActiveSlideId(uploadId);
@@ -87,6 +120,11 @@ export default function App() {
     setSlideSvgContent(undefined);
     setSlideDescription(result.analysis.tissueClassification.generalDescription);
     setCurrentAnalysis(result.analysis);
+    setCurrentLocalAnalysis(result.localAnalysis ?? null);
+    const ovRaw = (result.localAnalysis as { overlay_png_b64?: string } | null)?.overlay_png_b64;
+    setOverlaySrc(ovRaw ? `data:image/jpeg;base64,${ovRaw}` : undefined);
+    // Nova lâmina carregada: anotações da anterior não se aplicam.
+    setUserAnnotations([]);
     setSelectedConstituent(null);
     setSelectedAnnotationId(null);
     setIsDrawingMode(false);
@@ -205,6 +243,7 @@ export default function App() {
             svgContent={slideSvgContent}
             title={slideTitle}
             staining={slideStaining}
+            overlaySrc={overlaySrc}
             magnification={currentAnalysis.tissueClassification.magnificationEstimate || '400x'}
             constituents={currentAnalysis.cellularConstituents}
             selectedConstituent={selectedConstituent}
@@ -310,6 +349,7 @@ export default function App() {
         isOpen={isAtlasOpen}
         onClose={() => setIsAtlasOpen(false)}
         onSelectSlide={handleSelectReferenceSlide}
+        onSelectGallerySlide={handleSelectGallerySlide}
         activeSlideId={activeSlideId}
       />
 
@@ -320,6 +360,7 @@ export default function App() {
         questions={currentAnalysis.academicQuizQuestions}
         currentTissueName={currentAnalysis.tissueClassification.primaryTissue}
         imageBase64={slideImageSrc}
+        localAnalysis={currentLocalAnalysis ?? undefined}
         onQuestionsUpdated={(newQuestions) => {
           setCurrentAnalysis((prev) => ({
             ...prev,

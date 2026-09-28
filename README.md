@@ -50,6 +50,7 @@ npm install
 
 # 2) Motor local Python (offline, gratuito)
 pip install -r engine/requirements.txt
+#    Windows: o servidor tenta python → py → python3 (ou define PYTHON_BIN no .env)
 
 # 3) (Opcional) Chave Gemini — gratuita com conta Google
 #    https://aistudio.google.com → Get API key
@@ -61,11 +62,11 @@ npm run dev            # http://localhost:3000
 
 ## Motor local (Histolab)
 
-Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E (Ruifrok & Johnston) → segmentação de núcleos (Otsu + morfologia) → morfometria (área, circularidade, elongação) → features globais (densidade nuclear/mm², razão de estroma, espaços claros) → classificação por regras com confiança e evidência. **Precisão: 92%** (11/12) na galeria de referência.
+Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E (Ruifrok & Johnston) → segmentação de núcleos (Otsu + morfologia) → morfometria (área, circularidade, elongação) → features globais (densidade nuclear/mm², razão de estroma, espaços claros) → classificação por regras com confiança e evidência. **Precisão medida: 9/12 (75%)** na galeria de referência — reprodutível com `python engine/eval.py`. As 3 lâminas restantes devolvem «indeterminado» em vez de falsos positivos (as alegações anteriores de 92% não eram verificáveis — nenhum script de avaliação existia).
 
 ## Galeria de referência
 
-12 micrografias H&E reais do Wikimedia Commons (CC BY / CC BY-SA / domínio público), com atribuição por imagem em [`engine/gallery_meta.json`](engine/gallery_meta.json): epitélios (escamoso, transicional, adenocarcinoma do cólon), conjuntivo (frouxo, denso), muscular (liso, esquelético, cardíaco), nervoso (gânglio, córtex), adiposo e fígado.
+12 micrografias H&E. **Proveniência honesta (corrigida 2026-09-28):** só 2/12 têm origem verificada no Wikimedia Commons (fotógrafo Photograper09, CC BY-SA 4.0 — ver `source_url` em [`engine/gallery_meta.json`](engine/gallery_meta.json)); as restantes 10 estão marcadas `provenance: "unverified"` (os nomes de ficheiro reclamados nem existem no Commons) — **verificar ou substituir antes de qualquer distribuição pública**: epitélios (escamoso, transicional, adenocarcinoma do cólon), conjuntivo (frouxo, denso), muscular (liso, esquelético, cardíaco), nervoso (gânglio, córtex), adiposo e fígado.
 
 ## Estrutura
 
