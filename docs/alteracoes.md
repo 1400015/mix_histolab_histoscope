@@ -4,7 +4,7 @@ Cada alteração ao código fica registada aqui por data (mais recente primeiro)
 
 ---
 
-## 2026-09-28 — Melhorias de produto e engenharia (lote pós-review) (local)
+## 2026-09-28 — Melhorias de produto e engenharia (lote pós-review) (commit `7d26243`)
 
 **Ficheiros:** `server/gemini.ts` (novo), `server.ts` (reescrito), `engine/engine_cli.py`, `engine/engine_bridge.ts`, `engine/questions.py`, `engine/requirements.txt`, `engine/test_analyzer.py`, `src/App.tsx`, `src/components/{ReferenceAtlasDrawer,MicroscopeViewer,ImageUploaderModal,AcademicQuizModal,SlideComparisonModal,HistologyTutorModal,ProgressDashboardModal}.tsx`, `.github/workflows/ci.yml` (novo), `package.json`, `README.md`.
 
