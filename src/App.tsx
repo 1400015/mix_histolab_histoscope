@@ -1,0 +1,350 @@
+import React, { useState } from 'react';
+import {
+  Microscope,
+  Upload,
+  SplitSquareVertical,
+  BookOpen,
+  Tag,
+  Layers,
+  Sparkles,
+  Bot,
+  TrendingUp,
+  FileText,
+  Search,
+  CheckCircle2,
+} from 'lucide-react';
+import { REFERENCE_SLIDES } from './data/referenceSlides';
+import {
+  ReferenceTissueSlide,
+  HistologyAnalysis,
+  CellularConstituent,
+  UserAnnotation,
+  AcademicQuizQuestion,
+} from './types/histology';
+import { MicroscopeViewer } from './components/MicroscopeViewer';
+import { AnalysisPanel } from './components/AnalysisPanel';
+import { AnnotationSystem } from './components/AnnotationSystem';
+import { SlideComparisonModal } from './components/SlideComparisonModal';
+import { AcademicQuizModal } from './components/AcademicQuizModal';
+import { ReferenceAtlasDrawer } from './components/ReferenceAtlasDrawer';
+import { ImageUploaderModal } from './components/ImageUploaderModal';
+import { HistologyTutorModal } from './components/HistologyTutorModal';
+import { ProgressDashboardModal } from './components/ProgressDashboardModal';
+
+export default function App() {
+  // Current Active Slide State (Default: Skin thick reference)
+  const defaultSlide = REFERENCE_SLIDES[0];
+
+  const [activeSlideId, setActiveSlideId] = useState<string>(defaultSlide.id);
+  const [slideTitle, setSlideTitle] = useState<string>(defaultSlide.title);
+  const [slideStaining, setSlideStaining] = useState<string>(defaultSlide.staining);
+  const [slideImageSrc, setSlideImageSrc] = useState<string | undefined>(undefined);
+  const [slideSvgContent, setSlideSvgContent] = useState<string | undefined>(defaultSlide.thumbnailSvg);
+  const [slideDescription, setSlideDescription] = useState<string>(defaultSlide.description);
+  const [currentAnalysis, setCurrentAnalysis] = useState<HistologyAnalysis>(defaultSlide.analysis);
+
+  // Interaction State
+  const [selectedConstituent, setSelectedConstituent] = useState<CellularConstituent | null>(null);
+  const [userAnnotations, setUserAnnotations] = useState<UserAnnotation[]>([]);
+  const [isDrawingMode, setIsDrawingMode] = useState<boolean>(false);
+  const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
+  const [rightPanelMode, setRightPanelMode] = useState<'analysis' | 'annotations'>('analysis');
+
+  // Modals state
+  const [isUploadOpen, setIsUploadOpen] = useState<boolean>(false);
+  const [isAtlasOpen, setIsAtlasOpen] = useState<boolean>(false);
+  const [isQuizOpen, setIsQuizOpen] = useState<boolean>(false);
+  const [isProgressOpen, setIsProgressOpen] = useState<boolean>(false);
+  const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
+  const [isTutorOpen, setIsTutorOpen] = useState<boolean>(false);
+
+  // Switch to reference slide
+  const handleSelectReferenceSlide = (slide: ReferenceTissueSlide) => {
+    setActiveSlideId(slide.id);
+    setSlideTitle(slide.title);
+    setSlideStaining(slide.staining);
+    setSlideImageSrc(undefined);
+    setSlideSvgContent(slide.thumbnailSvg);
+    setSlideDescription(slide.description);
+    setCurrentAnalysis(slide.analysis);
+    setSelectedConstituent(null);
+    setSelectedAnnotationId(null);
+    setIsDrawingMode(false);
+  };
+
+  // Receive newly uploaded & analyzed image from ImageUploaderModal
+  const handleAnalysisComplete = (result: {
+    imageBase64: string;
+    analysis: HistologyAnalysis;
+    title: string;
+    staining: string;
+  }) => {
+    const uploadId = `upload_${Date.now()}`;
+    setActiveSlideId(uploadId);
+    setSlideTitle(result.title);
+    setSlideStaining(result.staining);
+    setSlideImageSrc(result.imageBase64);
+    setSlideSvgContent(undefined);
+    setSlideDescription(result.analysis.tissueClassification.generalDescription);
+    setCurrentAnalysis(result.analysis);
+    setSelectedConstituent(null);
+    setSelectedAnnotationId(null);
+    setIsDrawingMode(false);
+    setRightPanelMode('analysis');
+  };
+
+  const handleAddAnnotation = (ann: UserAnnotation) => {
+    setUserAnnotations((prev) => [...prev, ann]);
+    try {
+      localStorage.setItem(
+        `histoscope_annotations_${activeSlideId}`,
+        JSON.stringify([...userAnnotations, ann])
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
+      {/* Top Navbar */}
+      <header className="h-14 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between z-30 shrink-0">
+        {/* App Title & Current Slide Summary */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md">
+              <Microscope className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
+                <span>HistoScope AI</span>
+                <span className="text-[10px] font-mono uppercase bg-indigo-950 text-indigo-300 border border-indigo-800/60 px-1.5 py-0.2 rounded font-normal">
+                  Patologia & Treino
+                </span>
+              </h1>
+            </div>
+          </div>
+
+          <div className="hidden lg:flex items-center gap-2 pl-4 border-l border-slate-800 text-xs text-slate-400">
+            <span className="text-slate-200 font-medium truncate max-w-xs">{slideTitle}</span>
+            <span aria-hidden="true">·</span>
+            <span className="text-indigo-400 font-mono text-[11px]">{currentAnalysis.tissueClassification.tissueFamily}</span>
+            <span aria-hidden="true">·</span>
+            <span className="text-emerald-400 text-[11px]">{currentAnalysis.tissueClassification.confidenceLevel}</span>
+          </div>
+        </div>
+
+        {/* Global Action Tools */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Upload Button */}
+          <button
+            onClick={() => setIsUploadOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Nova Imagem</span>
+          </button>
+
+          {/* Side-by-side Comparison Button */}
+          <button
+            onClick={() => setIsComparisonOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            title="Comparação Lado a Lado com Lâminas de Referência"
+          >
+            <SplitSquareVertical className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden md:inline">Comparar Lado a Lado</span>
+          </button>
+
+          {/* Reference Atlas Library */}
+          <button
+            onClick={() => setIsAtlasOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            title="Atlas de Lâminas de Referência"
+          >
+            <Layers className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="hidden md:inline">Atlas de Tecidos</span>
+          </button>
+
+          {/* Academic Quiz Mode */}
+          <button
+            onClick={() => setIsQuizOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
+            title="Avaliação Académica & Treino"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden md:inline">Avaliação</span>
+          </button>
+
+          {/* User Progress Dashboard */}
+          <button
+            onClick={() => setIsProgressOpen(true)}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors"
+            title="Progresso e Histórico de Testes"
+          >
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden xl:inline">Progresso</span>
+          </button>
+
+          {/* AI Histology Tutor Chat */}
+          <button
+            onClick={() => setIsTutorOpen(true)}
+            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg text-xs transition-colors border border-slate-700"
+            title="Tutor Universitário de Histologia"
+          >
+            <Bot className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Workspace Layout (2-Column Desktop Grid) */}
+      <main className="flex-1 flex flex-col md:flex-row p-3 gap-3 overflow-hidden">
+        {/* Left Column: Interactive Microscope Viewport (60-65% width) */}
+        <section className="flex-1 h-full min-h-[360px] flex flex-col min-w-0">
+          <MicroscopeViewer
+            imageSrc={slideImageSrc}
+            svgContent={slideSvgContent}
+            title={slideTitle}
+            staining={slideStaining}
+            magnification={currentAnalysis.tissueClassification.magnificationEstimate || '400x'}
+            constituents={currentAnalysis.cellularConstituents}
+            selectedConstituent={selectedConstituent}
+            onSelectConstituent={(c) => {
+              setSelectedConstituent(c);
+              setRightPanelMode('analysis');
+            }}
+            userAnnotations={userAnnotations}
+            onAddAnnotation={handleAddAnnotation}
+            isDrawingMode={isDrawingMode}
+            onToggleDrawingMode={(active) => {
+              setIsDrawingMode(active);
+              if (active) setRightPanelMode('annotations');
+            }}
+            selectedAnnotationId={selectedAnnotationId}
+            onSelectAnnotation={(id) => {
+              setSelectedAnnotationId(id);
+              if (id) setRightPanelMode('annotations');
+            }}
+          />
+        </section>
+
+        {/* Right Column: Switchable Panel (Analysis Report vs User Annotations) (35-40% width) */}
+        <aside className="w-full md:w-[440px] xl:w-[490px] h-full flex flex-col shrink-0">
+          {/* Right Panel View Mode Switcher */}
+          <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg mb-2 text-xs">
+            <button
+              onClick={() => setRightPanelMode('analysis')}
+              className={`flex-1 py-1 px-3 rounded-md font-medium transition-colors text-center flex items-center justify-center gap-1.5 ${
+                rightPanelMode === 'analysis'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Análise & Diagnóstico</span>
+            </button>
+
+            <button
+              onClick={() => setRightPanelMode('annotations')}
+              className={`flex-1 py-1 px-3 rounded-md font-medium transition-colors text-center flex items-center justify-center gap-1.5 ${
+                rightPanelMode === 'annotations'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Tag className="w-3.5 h-3.5" />
+              <span>Minhas Anotações ({userAnnotations.length})</span>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            {rightPanelMode === 'analysis' ? (
+              <AnalysisPanel
+                analysis={currentAnalysis}
+                selectedConstituent={selectedConstituent}
+                onSelectConstituent={(c) => setSelectedConstituent(c)}
+                onOpenQuiz={() => setIsQuizOpen(true)}
+              />
+            ) : (
+              <AnnotationSystem
+                slideId={activeSlideId}
+                slideTitle={slideTitle}
+                slideTissue={currentAnalysis.tissueClassification.primaryTissue}
+                imageSrc={slideImageSrc}
+                svgContent={slideSvgContent}
+                isDrawingMode={isDrawingMode}
+                onToggleDrawingMode={(active) => setIsDrawingMode(active)}
+                annotations={userAnnotations}
+                onAnnotationsChange={(anns) => setUserAnnotations(anns)}
+                selectedAnnotationId={selectedAnnotationId}
+                onSelectAnnotation={(id) => setSelectedAnnotationId(id)}
+              />
+            )}
+          </div>
+        </aside>
+      </main>
+
+      {/* MODAL 1: Image Uploader & Live AI Analyzer */}
+      <ImageUploaderModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onAnalysisComplete={handleAnalysisComplete}
+      />
+
+      {/* MODAL 2: Side-by-Side Slide Comparison */}
+      <SlideComparisonModal
+        isOpen={isComparisonOpen}
+        onClose={() => setIsComparisonOpen(false)}
+        primarySlide={{
+          id: activeSlideId,
+          title: slideTitle,
+          tissue: currentAnalysis.tissueClassification.primaryTissue,
+          staining: slideStaining,
+          imageSrc: slideImageSrc,
+          svgContent: slideSvgContent,
+          description: slideDescription,
+        }}
+      />
+
+      {/* MODAL 3: Reference Atlas Drawer */}
+      <ReferenceAtlasDrawer
+        isOpen={isAtlasOpen}
+        onClose={() => setIsAtlasOpen(false)}
+        onSelectSlide={handleSelectReferenceSlide}
+        activeSlideId={activeSlideId}
+      />
+
+      {/* MODAL 4: Academic Quiz & Evaluation Engine */}
+      <AcademicQuizModal
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        questions={currentAnalysis.academicQuizQuestions}
+        currentTissueName={currentAnalysis.tissueClassification.primaryTissue}
+        imageBase64={slideImageSrc}
+        onQuestionsUpdated={(newQuestions) => {
+          setCurrentAnalysis((prev) => ({
+            ...prev,
+            academicQuizQuestions: newQuestions,
+          }));
+        }}
+        onOpenProgressDashboard={() => {
+          setIsQuizOpen(false);
+          setIsProgressOpen(true);
+        }}
+      />
+
+      {/* MODAL 5: Student Progress Dashboard */}
+      <ProgressDashboardModal
+        isOpen={isProgressOpen}
+        onClose={() => setIsProgressOpen(false)}
+      />
+
+      {/* MODAL 6: AI Histology Tutor Chat */}
+      <HistologyTutorModal
+        isOpen={isTutorOpen}
+        onClose={() => setIsTutorOpen(false)}
+        tissueContext={`${slideTitle} - ${currentAnalysis.tissueClassification.primaryTissue} (${slideStaining})`}
+        imageBase64={slideImageSrc}
+      />
+    </div>
+  );
+}
