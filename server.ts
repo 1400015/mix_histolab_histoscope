@@ -4,6 +4,14 @@ import { GoogleGenAI, Type } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import {
+  localAnalyze,
+  localAnalyzeBase64,
+  localQuestions,
+  localChat,
+  featuresToPromptContext,
+} from './engine/engine_bridge';
 
 dotenv.config();
 
@@ -19,6 +27,7 @@ app.use(express.urlencoded({ extended: true, limit: '40mb' }));
 
 // Shared Gemini client utility on the server
 // User-Agent must be set to 'aistudio-build' for telemetry
+const hasGemini = () => Boolean(process.env.GEMINI_API_KEY);
 const getGenAI = () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -37,12 +46,27 @@ const getGenAI = () => {
 // API Route: Histological Image Analysis
 app.post('/api/analyze-histology', async (req: Request, res: Response) => {
   try {
-    const { imageBase64, mimeType = 'image/jpeg', tissueHint, stainHint, customInstructions } = req.body;
+    const { imageBase64, mimeType = 'image/jpeg', tissueHint, stainHint, customInstructions, mode = 'auto' } = req.body;
 
     if (!imageBase64) {
       return res.status(400).json({ error: 'Nenhuma imagem foi fornecida para análise.' });
     }
 
+    // Local deterministic CV analysis (always attempted; free, offline, grounds Gemini)
+    let localAnalysis = null;
+    try {
+      localAnalysis = await localAnalyzeBase64(imageBase64);
+    } catch (e: any) {
+      console.error('Motor local indisponível:', e.message);
+    }
+    if (mode === 'local') {
+      if (!localAnalysis) return res.status(500).json({ error: 'Motor local indisponível (requer python3 + opencv-python).' });
+      return res.json({ mode: 'local', localAnalysis });
+    }
+    if (!hasGemini()) {
+      if (localAnalysis) return res.json({ mode: 'local', localAnalysis });
+      throw new Error('GEMINI_API_KEY ausente e motor local indisponível.');
+    }
     const ai = getGenAI();
 
     // Clean base64 data if it contains a data URL prefix
@@ -66,7 +90,7 @@ ${tissueHint ? `Dica de tecido/órgão do utilizador: ${tissueHint}` : ''}
 ${stainHint ? `Coloração indicada: ${stainHint}` : ''}
 ${customInstructions ? `Instruções específicas: ${customInstructions}` : ''}
 
-Retorne exclusivamente um JSON com a estrutura especificada.`;
+${localAnalysis ? `\n\nMétricas objetivas do motor de visão por computador local (use-as para fundamentar a análise):\n${featuresToPromptContext(localAnalysis)}` : ''}\nRetorne exclusivamente um JSON com a estrutura especificada.`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
@@ -195,7 +219,7 @@ Retorne exclusivamente um JSON com a estrutura especificada.`;
     });
 
     const parsedData = JSON.parse(response.text || '{}');
-    return res.json(parsedData);
+    return res.json({ ...parsedData, mode: 'gemini', localAnalysis });
   } catch (error: any) {
     console.error('Erro na análise histológica:', error);
     return res.status(500).json({
@@ -208,8 +232,15 @@ Retorne exclusivamente um JSON com a estrutura especificada.`;
 // API Route: Generate Academic Quiz Questions
 app.post('/api/generate-quiz', async (req: Request, res: Response) => {
   try {
-    const { tissueName, difficulty = 'Intermédio', count = 5, specificTopic, imageBase64, mimeType, questionTypes = 'all' } = req.body;
+    const { tissueName, difficulty = 'Intermédio', count = 5, specificTopic, imageBase64, mimeType, questionTypes = 'all', analysis } = req.body;
 
+    if (!hasGemini()) {
+      if (analysis) {
+        const qs = await localQuestions(analysis, count, difficulty === 'Iniciação' ? 'easy' : difficulty === 'Avançado' ? 'hard' : 'medium');
+        return res.json({ quizTitle: `Quiz local — ${tissueName || analysis.tissue}`, targetTissue: tissueName || analysis.tissue, questions: qs, mode: 'local' });
+      }
+      return res.status(400).json({ error: 'Quiz offline requer uma análise local prévia (campo "analysis"). Configure GEMINI_API_KEY para quizzes gerais.' });
+    }
     const ai = getGenAI();
 
     const parts: any[] = [];
@@ -417,6 +448,12 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Nenhuma mensagem foi fornecida.' });
     }
 
+    if (!hasGemini()) {
+      const last = messages[messages.length - 1];
+      const reply = await localChat(last.text || last.content || '', tissueContext, undefined);
+      return res.json({ ...reply, modelUsed: 'local-tutor' });
+    }
+
     const ai = getGenAI();
 
     // Determine persona instructions
@@ -526,6 +563,35 @@ Forneça uma resposta clara, didática, fundamentada em critérios histológicos
       details: error.message || String(error),
     });
   }
+});
+
+// API Route: Real reference gallery (micrographs from Wikimedia Commons, CC)
+app.get('/api/gallery', (_req: Request, res: Response) => {
+  try {
+    const metaPath = path.join(__dirname, 'engine', 'gallery_meta.json');
+    const items = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+    res.json({ items });
+  } catch (e: any) {
+    res.status(500).json({ error: 'Galeria indisponível: ' + e.message });
+  }
+});
+
+app.use('/gallery-images', express.static(path.join(__dirname, 'engine', 'static', 'gallery')));
+
+// API Route: Precomputed local analysis of a gallery slide
+app.get('/api/gallery/:key/analysis', async (req: Request, res: Response) => {
+  try {
+    const imgPath = path.join(__dirname, 'engine', 'static', 'gallery', `${req.params.key}.jpg`);
+    const analysis = await localAnalyze(imgPath);
+    res.json(analysis);
+  } catch (e: any) {
+    res.status(500).json({ error: 'Análise local indisponível: ' + e.message });
+  }
+});
+
+// API Route: Runtime capabilities (frontend can adapt its UI)
+app.get('/api/status', (_req: Request, res: Response) => {
+  res.json({ gemini: hasGemini() });
 });
 
 // Mount Vite or static server
