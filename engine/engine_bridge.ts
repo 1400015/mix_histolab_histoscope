@@ -20,7 +20,13 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const ENGINE_DIR = path.resolve(__dirname, '..', 'engine');
+// Em dev o ficheiro vive em engine/ (dirname = engine). Em produção o bundle corre
+// de dist/, e o motor fica na raiz do projeto — tenta ambos.
+const DEV_ENGINE = path.resolve(__dirname);
+const PROD_ENGINE = path.resolve(__dirname, '..', 'engine');
+const ENGINE_DIR = fs.existsSync(path.join(DEV_ENGINE, 'engine_cli.py'))
+  ? DEV_ENGINE
+  : PROD_ENGINE;
 
 export interface LocalAnalysis {
   tissue: string;

@@ -52,3 +52,25 @@ Cada alteração ao código fica registada aqui por data (mais recente primeiro)
 8. `engine/eval.py` — precisão reprodutível: **9/12 (75%)**; as 3 falhas devolvem «indeterminado» em vez de falsos positivos (a alegação "92% (11/12)" não era verificável). `engine/test_analyzer.py` — 15 testes pytest (guardas indeterminado, contrato do resultado, as 12 lâminas correm).
 
 **Verificação final.** `tsc --noEmit` limpo (strict), `npm run build` completo, `npm install` sem ERESOLVE, 15/15 pytest, e2e offline verde.
+
+---
+
+## 2026-09-28 — Fix de paths no build de produção (P0)
+
+**Ficheiros:** `server.ts`, `engine/engine_bridge.ts`, `docs/alteracoes.md`.
+
+**Problema.** Em produção (`NODE_ENV=production`, `node dist/server.js`), todos os
+caminhos usavam `__dirname` (= `dist/`): `gallery_meta.json`, `static/gallery/` e
+`engine_cli.py` ficavam intratáveis — `/api/gallery` devolvia 500 (ENOENT) e o
+motor local nunca arrancava. O bundle do esbuild vive em `dist/`, mas os assets do
+motor ficam na raiz do projeto.
+
+**Correção.** `PROJECT_ROOT` em `server.ts` e `ENGINE_DIR` em `engine_bridge.ts`
+resolvem por sonda (`fs.existsSync`): se `engine/` existe junto ao ficheiro, é dev;
+caso contrário sobem um nível (produção). Vale para os 4 pontos de uso
+(galeria meta, static gallery, cli do motor, imagem da galeria).
+
+**Verificação.** `tsc --noEmit` limpo; `npm run build` ok; e2e em produção sem
+`GEMINI_API_KEY`: `/api/status` ✓, `/api/gallery` (12 itens) ✓, análise mode=local
+mapeada ("Parênquima Hepático", 57%, com overlay) ✓, quiz local (4 perguntas) ✓,
+chat local-tutor ✓.

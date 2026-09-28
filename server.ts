@@ -34,6 +34,11 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Base do projeto: em dev é a raiz do repo; em produção o server corre de dist/,
+// por isso sobe um nível se necessário (os assets do motor ficam na raiz).
+const PROJECT_ROOT = fs.existsSync(path.join(__dirname, 'engine'))
+  ? __dirname
+  : path.resolve(__dirname, '..');
 
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -367,7 +372,7 @@ Forneça uma resposta clara, didática, fundamentada em critérios histológicos
 // disco — path traversal em /api/gallery/:key/analysis).
 const GALLERY_KEYS: Set<string> = (() => {
   try {
-    const items = JSON.parse(fs.readFileSync(path.join(__dirname, 'engine', 'gallery_meta.json'), 'utf-8'));
+    const items = JSON.parse(fs.readFileSync(path.join(PROJECT_ROOT, 'engine', 'gallery_meta.json'), 'utf-8'));
     return new Set<string>(items.map((i: { key: string }) => i.key));
   } catch {
     return new Set<string>();
@@ -376,7 +381,7 @@ const GALLERY_KEYS: Set<string> = (() => {
 
 app.get('/api/gallery', (_req: Request, res: Response) => {
   try {
-    const metaPath = path.join(__dirname, 'engine', 'gallery_meta.json');
+    const metaPath = path.join(PROJECT_ROOT, 'engine', 'gallery_meta.json');
     const items = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
     res.json({ items });
   } catch (e: any) {
@@ -384,7 +389,7 @@ app.get('/api/gallery', (_req: Request, res: Response) => {
   }
 });
 
-app.use('/gallery-images', express.static(path.join(__dirname, 'engine', 'static', 'gallery')));
+app.use('/gallery-images', express.static(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery')));
 
 // API Route: Local analysis of a gallery slide (mapped to the UI contract —
 // melhoria 2026-09-28: devolve HistologyAnalysis + localAnalysis, igual ao
