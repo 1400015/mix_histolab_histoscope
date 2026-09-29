@@ -569,6 +569,14 @@ app.get('/api/status', (_req: Request, res: Response) => {
   res.json({ gemini: hasGemini(), engine: engineLoad() });
 });
 
+// P3 (2026-09-29): pedidos GET a endpoints /api inexistentes caíam no
+// fallback do SPA e respondiam 200 com index.html (ex.: /api/gallery-images/
+// <f>.jpg), escondendo 404 dos clientes. Guarda JSON montado DEPOIS de todas
+// as rotas acima e ANTES do Vite/static. Não afeta rotas reais.
+app.use('/api', (_req: Request, res: Response) => {
+  res.status(404).json({ error: 'Endpoint desconhecido.' });
+});
+
 // Mount Vite or static server
 async function startServer() {
   if (!isProduction) {

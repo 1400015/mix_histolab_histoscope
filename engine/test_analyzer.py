@@ -58,8 +58,8 @@ def _features(**over: float) -> dict[str, float]:
     base = {
         "n_nuclei": 8, "nuclei_per_mm2": 6.0, "median_nucleus_area": 60.0,
         "nucleus_area_cv": 0.2, "median_circularity": 0.7, "median_elongation": 1.3,
-        "stromal_ratio": 0.95, "empty_ratio": 0.0, "hematoxylin_mean": 8.0,
-        "eosin_mean": 150.0,
+        "stromal_ratio": 0.95, "stroma_tissue_frac": 0.95, "empty_ratio": 0.0,
+        "hematoxylin_mean": 8.0, "eosin_mean": 150.0,
     }
     base.update(over)
     return base
@@ -106,14 +106,17 @@ def test_contrato_do_resultado() -> None:
     f = result["features"]
     for key in (
         "n_nuclei", "nuclei_per_mm2", "median_nucleus_area", "nucleus_area_cv",
-        "median_circularity", "median_elongation", "stromal_ratio", "empty_ratio",
-        "hematoxylin_mean", "eosin_mean",
+        "median_circularity", "median_elongation", "stromal_ratio", "stroma_tissue_frac",
+        "empty_ratio", "hematoxylin_mean", "eosin_mean",
     ):
         assert key in f
     assert 0.0 <= f["stromal_ratio"] <= 1.0
+    assert 0.0 <= f["stroma_tissue_frac"] <= 1.0
     assert 0.0 <= f["empty_ratio"] <= 1.0
+    assert 0.0 <= f["median_circularity"] <= 1.0
 
 
+@pytest.mark.gallery
 @pytest.mark.parametrize("item", json.loads((HERE / "gallery_meta.json").read_text(encoding="utf-8")), ids=lambda i: i["key"])
 def test_galeria_classifica_sem_excepcao(item: dict) -> None:
     """As 12 lâminas da galeria correm e classificam dentro do conjunto conhecido."""

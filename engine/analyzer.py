@@ -156,7 +156,9 @@ def _nucleus_metrics(markers: np.ndarray) -> tuple[list[NucleusInfo], np.ndarray
             m.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
         per = cv2.arcLength(contours[0], True) if contours else 2 * math.sqrt(math.pi * area)
-        circ = 4 * math.pi * area / (per * per + 1e-9)
+        # Contorno discretizado subestima o perímetro contínuo, por isso
+        # 4πA/P² pode exceder 1 — clamp para manter a métrica em [0,1].
+        circ = min(1.0, 4 * math.pi * area / (per * per + 1e-9))
         elong = 1.0
         if contours and len(contours[0]) >= 5:
             (cx, cy), (w, h), _ = cv2.fitEllipse(contours[0])
@@ -182,6 +184,7 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
     elong = features["median_elongation"]
     area = features["median_nucleus_area"]
     stroma = features["stromal_ratio"]
+    stroma_tissue = features["stroma_tissue_frac"]
     eosin = features["eosin_mean"]
     hema = features["hematoxylin_mean"]
     empty = features["empty_ratio"]
@@ -234,7 +237,9 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
     if empty > 0.45:
         scores["adipose"] += 8.0
         reasons["adipose"].append("vacúolos lipídicos claros dominam o campo")
-    elif empty > 0.30 and density > 20:
+    elif empty > 0.30 and density > 20 and stroma_tissue > 0.25:
+        # Sepos conjuntivos eosinofílicos exigidos (2026-09-29): fundo branco
+        # de lâmina rasgada (dense_connective, 38% vazio) não é adiposo.
         scores["adipose"] += 3.0
         reasons["adipose"].append("espaços claros extensos com núcleos periféricos")
 
@@ -259,16 +264,34 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
     if eosin > 120 and 3 < density < 25 and empty < 0.1 and elong < 2.6:
         scores["connective"] += 1.5
         reasons["connective"].append("predomínio de eosina com núcleos dispersos")
+    # Conjuntivo frouxo/tecido de granulação (2026-09-29): matriz eosinofílica
+    # com núcleos raros e quase sem basofilia — sem esta regra todas as pontuações
+    # davam 0 e a lâmina caía em "indeterminado" (connective_loose, eval 10/14).
+    if density < 5 and hema < 8 and stroma_tissue > 0.12 and empty < 0.15:
+        scores["connective"] += 4.0
+        reasons["connective"].append("matriz eosinofílica com núcleos raros e basofilia nula (conjuntivo frouxo)")
+    # Conjuntivo denso pálido (2026-09-29): colagénio com fundos vazios
+    # irregulares de rasgo, estroma eosinofílico moderado e sem basofilia —
+    # confunde-se com pulmão (vazio) ou epitélio (densidade) sem este critério.
+    if 0.10 <= stroma_tissue <= 0.30 and eosin > 35 and hema < 25 and elong < 2.1 and density < 60 and empty > 0.15:
+        scores["connective"] += 6.0
+        reasons["connective"].append("feixes colagénicos pálidos com espaços vazios irregulares (conjuntivo denso)")
 
     # --- Epithelial: dense basophilic nuclei, round, low stroma ---
-    if density > 30 and hema > 20:
+    if density > 30 and hema > 20 and stroma < 0.25 and empty < 0.2:
         scores["epithelial"] += 3.0
         reasons["epithelial"].append("densidade nuclear elevada com basofilia")
-    elif density > 20 and hema > 18:
+    elif density > 20 and hema > 20:
         scores["epithelial"] += 1.5
     if circularity > 0.8 and 1.2 <= elong <= 1.9 and density > 15:
         scores["epithelial"] += 1.5
         reasons["epithelial"].append("núcleos arredondados e compactos")
+    # Epitélio estratificado com hematoxilina desbotada (2026-09-29): o canal H
+    # não deteta os núcleos, mas o fallback em cinzento dá densidade alta de
+    # núcleos redondos sobre matriz eosinofílica (transitional_epithelium).
+    if density > 30 and hema < 15 and eosin > 90 and circularity > 0.8:
+        scores["epithelial"] += 2.0
+        reasons["epithelial"].append("núcleos redondos densos com hematoxilina desbotada (epitélio estratificado)")
     if stroma < 0.3 and density > 15 and hema > 15:
         scores["epithelial"] += 1.0
 
@@ -278,6 +301,12 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
         reasons["nervous"].append("baixa densidade nuclear com neuropilo claro")
     elif density < 18 and elong < 2.2 and 15 <= hema < 40:
         scores["nervous"] += 1.5
+    # Gânglio (2026-09-29): corpos celulares dispersos em neuropilo eosinofílico
+    # denso — a basofilia média é baixa (núcleos raros), por isso a regra usa
+    # estroma eosinofílico do tecido em vez da média global de H.
+    if density < 20 and 1.2 <= elong < 2.2 and eosin > 90 and stroma_tissue > 0.45 and hema < 25:
+        scores["nervous"] += 4.5
+        reasons["nervous"].append("corpos celulares dispersos em neuropilo eosinofílico denso (gânglio)")
 
     # --- Liver: VERY high density, uniform small round nuclei, low stroma, moderate H+E ---
     if density > 70 and area < 120 and cv < 1.6 and stroma < 0.35 and empty < 0.15:
@@ -306,12 +335,14 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
     # --- Lung (A3): parênquima alveolar — espaços aéreos claros moderados
     # (28–45%, abaixo do adiposo unilocular >45%) com septos finos e
     # densidade nuclear apreciável nas paredes alveolares.
-    if 0.28 < empty <= 0.45 and density > 40:
+    # Limiares dens>80 e eosin>60 (2026-09-29): paredes alveolares densas vs.
+    # fundo branco de rasgo (dense_connective tinha 55/mm² e caía em pulmão).
+    if 0.28 < empty <= 0.45 and density > 80:
         scores["lung"] += 7.0
         reasons["lung"].append("espaços aéreos alveolares com septos finos e núcleos nas paredes")
-    if empty > 0.30 and hema < 40 and stroma < 0.35:
+    if empty > 0.30 and hema < 40 and stroma < 0.35 and eosin > 60:
         scores["lung"] += 1.5
-    if 0.28 < empty <= 0.45 and density > 40 and stroma < 0.35 and circularity > 0.85:
+    if 0.28 < empty <= 0.45 and density > 80 and stroma < 0.35 and circularity > 0.85:
         scores["lung"] += 1.5
 
     total = sum(scores.values()) + 1e-9
@@ -343,12 +374,41 @@ def analyze_image(bgr: np.ndarray, px_per_mm: float = 500.0) -> dict[str, Any]:
     infos, overlay = _nucleus_metrics(markers)
 
     # Stroma = eosin-positive pixels NOT covered by nuclei
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     nuclei_mask = clean > 0
+    empty_mask = (gray > 215) & ~nuclei_mask
+    tissue_mask = ~empty_mask
+    tissue_px = int(np.count_nonzero(tissue_mask))
+    total_px = bgr.shape[0] * bgr.shape[1]
+    # Imagem toda branca: escopo = imagem inteira (evita médias vazias).
+    scope = tissue_mask if tissue_px else np.ones_like(tissue_mask)
+
+    # Fallback de segmentação (2026-09-29): lâminas com hematoxilina desbotada
+    # (H≈0 no tecido) não têm núcleos segmentáveis no canal H; os núcleos
+    # continuam escuros no cinzento. Só quando o eosinofílico domina (E>90),
+    # para não inventar "núcleos" em conjuntivo pálido sem basofilia.
+    hema_t = float(h_ch[scope].mean())
+    eosin_t = float(e_ch[scope].mean())
+    if hema_t < 5 and eosin_t > 90:
+        m2, c2 = _segment_nuclei(255 - gray)
+        i2, o2 = _nucleus_metrics(m2)
+        if len(i2) > len(infos):
+            markers, clean, infos, overlay = m2, c2, i2, o2
+            nuclei_mask = clean > 0
+            empty_mask = (gray > 215) & ~nuclei_mask
+            tissue_mask = ~empty_mask
+            tissue_px = int(np.count_nonzero(tissue_mask))
+            scope = tissue_mask if tissue_px else np.ones_like(tissue_mask)
+            hema_t = float(h_ch[scope].mean())
+            eosin_t = float(e_ch[scope].mean())
+
     eosin_mask = e_ch > 90
     stromal_px = int(np.count_nonzero(eosin_mask & ~nuclei_mask))
-    total_px = bgr.shape[0] * bgr.shape[1]
-    empty_mask = (cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY) > 215) & ~nuclei_mask
     empty_ratio = float(np.count_nonzero(empty_mask)) / total_px
+    # Fração do TECIDO (exclui fundo branco) com eosinofilia — antes, o fundo
+    # diluía as médias de cor e anulava as regras do conjuntivo em lâminas
+    # rasgadas (dense_connective: eosin_mean 32→48 só no tecido).
+    stroma_tissue = float(np.count_nonzero(eosin_mask & ~nuclei_mask & tissue_mask)) / max(tissue_px, 1)
 
     areas = [i.area for i in infos]
     circs = [i.circularity for i in infos]
@@ -364,9 +424,10 @@ def analyze_image(bgr: np.ndarray, px_per_mm: float = 500.0) -> dict[str, Any]:
         "median_circularity": round(float(np.median(circs)) if circs else 0.0, 3),
         "median_elongation": round(float(np.median(elongs)) if elongs else 1.0, 2),
         "stromal_ratio": round(stromal_px / total_px, 3),
+        "stroma_tissue_frac": round(stroma_tissue, 3),
         "empty_ratio": round(empty_ratio, 3),
-        "hematoxylin_mean": round(float(h_ch.mean()), 1),
-        "eosin_mean": round(float(e_ch.mean()), 1),
+        "hematoxylin_mean": round(hema_t, 1),
+        "eosin_mean": round(eosin_t, 1),
     }
 
     tissue, confidence, evidence = _classify(features)

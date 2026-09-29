@@ -29,6 +29,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r engine/requirements.txt pytest
+      # PR: conjunto rápido (sem os testes de galeria, ~3 s) — a regressão do
+      # classificador fica garantida pelo eval.py abaixo. Push: suite completa.
+      - run: python -m pytest -q engine/ -m "not gallery"
+        if: github.event_name == 'pull_request'
       - run: python -m pytest -q engine/
+        if: github.event_name == 'push'
       # Report informativo de precisão (não bloqueia — ver docs/alteracoes.md)
       - run: python engine/eval.py

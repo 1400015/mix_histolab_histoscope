@@ -4,6 +4,28 @@ Cada alteração ao código fica registada aqui por data (mais recente primeiro)
 
 ---
 
+## 2026-09-29 — Revisão pós-atualização: classificador, servidor, CI e testes em falta (estado local)
+
+**Ficheiros:** `engine/analyzer.py`, `engine/test_analyzer.py`, `engine/test_questions.py` (novo), `engine/test_chatbot.py` (novo), `engine/pytest.ini` (novo), `server.ts`, `.github/workflows/ci.yml`, `README.md`, `engine/README.md`.
+
+Após sincronizar com o remoto (HEAD `0b240fe`), auditei o código com o eval, os testes e sondas ao classificador. Foram confirmados e corrigidos 4 problemas; o resto do trabalho anterior que não estava implementado (docs, CI, a11y, modo local, galeria) estava substituído pelas versões do remoto e foi descartado a favor destas.
+
+**1. Classificador — eval 10/14 → 13/14 (correcções reais, não tuning cego).** Sondas (`_LAST` instrumentado + tabela de features só-no-tecido nas 14 imagens) revelaram a causa-raiz comum das 3 falhas novas: `hematoxylin_mean`/`eosin_mean` eram calculados sobre **toda a imagem, incluindo fundo branco** — `dense_connective` (38% vazio) tinha eosin_mean 32 e estroma 0.097, as regras do conjuntivo nunca disparavam e a regra do pulmão ganhava por engano; `connective_loose` tinha **todos os scores a 0**. Correcções:
+- Médias H/E passam a medir-se **só sobre o tecido** (`~empty`) e nova feature `stroma_tissue_frac` (eosina>90 frac. do tecido, não da imagem inteira).
+- **Fallback de segmentação em cinzento** quando `hema_tecido < 5 and eosin_tecido > 90` — lâminas com hematoxilina desbotada (canal H ≈ 0) não têm núcleos segmentáveis no H; no cinzento `transitional_epithelium` passa de 16 para 135 núcleos. O gate `eosin > 90` impede o fallback em conjuntivo pálido (`connective_loose` daria 1665 falsos núcleos).
+- Regras novas: conjuntivo frouxo (densidade <5, H <8, estroma-tecido >0.12 → +4), conjuntivo denso pálido (faixa de estroma-tecido 0.10–0.30, eosina >35, H <25, vazio >0.15 → +6), epitélio com H desbotada (densidade >30, H <15, eosina >90, circularidade >0.8 → +2) e gânglio (neuropilo eosinofílico denso → +4.5, sem o qual o gânglio caía em «muscular» com as médias só-no-tecido).
+- Limiares endurecidos: base do pulmão `density >40` → `>80` e `eosin >60` no ramo de matriz (evita falso pulmão no conjuntivo denso); ramo +3 do adiposo exige estroma-tecido >0.25 (fundo de rasgo não é adiposo); ramo +3 do epitelial exige `stroma<0.25 & empty<0.2`; `elif` epitelial `hema>18` → `hema>20` (o cardíaco perdia o empate para o epitelial).
+- **P2:** `median_circularity` chegava a 1.09–1.12 (contorno discretizado subestima o perímetro) — clamp a 1.0.
+Resultado: treino **11/11**, validação **2/3**, total **13/14 (93%)**; única falha `cartilage_hyaline` (pálida, limitação documentada). Nenhuma confiança abaixo de 0.46.
+
+**2. Servidor — P3: GETs a `/api/*` inexistente devolviam 200 + index.html.** O fallback do SPA (`app.get('*')`/Vite) apanhava `/api/gallery-images/<f>.jpg` e tentativas de traversal, escondendo 404 dos clientes (não havia fuga de ficheiros — `express.static` e a whitelist `GALLERY_KEYS` bloqueiam, verificado — mas o 200-HTML mentia). Guard `app.use('/api', …404 JSON)` montado depois de todas as rotas e antes do Vite/static. `501` nos endpoints sem `GEMINI_API_KEY` mantém-se: é convenção deliberada e coberta por testes (`tests/server_routes.test.ts`).
+
+**3. CI/testes — P4 + cobertura em falta.** `pytest.ini` regista o marcador `gallery`; o teste parametrizado da galeria passa a `@pytest.mark.gallery`. No CI, o PR corre `-m "not gallery"` (~3 s — a regressão do classificador fica garantida pelo `eval.py` que corre sempre) e o push à main corre a suite completa. **Novo:** `test_questions.py` (11 testes) e `test_chatbot.py` (11 testes) — o remoto não tinha **nenhum** teste para `questions.py`/`chatbot.py`; portados para pytest e para a API atual (itens `type`/`answer`/`topic`, `ValueError` para indeterminado/desconhecido).
+
+**Verificação.** `tsc --noEmit` limpo; `vitest` 33/33; `npm run build` ok; `pytest -m "not gallery"` 29/29 (0.7 s); suite completa **71/71** (9 min); `python engine/eval.py` **13/14 (93%)**; smoke test real do servidor: `/api/status`, `/api/gallery` (42), análise local, quiz offline, `/api/gallery-images/…` inexistente → **404 JSON**, traversal → 404.
+
+---
+
 ## 2026-09-29 — Fallback «matriz dominante» no classificador (commit `b1a991d`)
 
 **Ficheiros:** `engine/analyzer.py`, `engine/test_analyzer.py`.
