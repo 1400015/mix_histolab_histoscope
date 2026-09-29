@@ -11,6 +11,7 @@ import {
   Info,
   ShieldAlert,
   Printer,
+  FileText,
   ChevronRight,
 } from 'lucide-react';
 
@@ -19,6 +20,9 @@ interface AnalysisPanelProps {
   selectedConstituent: CellularConstituent | null;
   onSelectConstituent: (c: CellularConstituent) => void;
   onOpenQuiz: () => void;
+  // B3: exportar relatório (Markdown + PDF via diálogo de impressão).
+  onExportMarkdown?: () => void;
+  onExportPrint?: () => void;
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
@@ -26,6 +30,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   selectedConstituent,
   onSelectConstituent,
   onOpenQuiz,
+  onExportMarkdown,
+  onExportPrint,
 }) => {
   const [activeTab, setActiveTab] = useState<'cells' | 'diagnosis' | 'staining' | 'overview'>('cells');
 
@@ -60,9 +66,18 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            {onExportMarkdown && (
+              <button
+                onClick={onExportMarkdown}
+                title="Exportar relatório (Markdown)"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+              </button>
+            )}
             <button
-              onClick={handlePrint}
-              title="Exportar / Imprimir Relatório"
+              onClick={onExportPrint || handlePrint}
+              title="Exportar / Imprimir Relatório (PDF)"
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
             >
               <Printer className="w-4 h-4" />

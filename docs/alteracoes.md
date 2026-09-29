@@ -74,3 +74,33 @@ caso contrário sobem um nível (produção). Vale para os 4 pontos de uso
 `GEMINI_API_KEY`: `/api/status` ✓, `/api/gallery` (12 itens) ✓, análise mode=local
 mapeada ("Parênquima Hepático", 57%, com overlay) ✓, quiz local (4 perguntas) ✓,
 chat local-tutor ✓.
+
+---
+
+## 2026-09-29 — Roadmap completo: A1-A3, B1-B6, C1-C4
+
+**Ficheiros:** `engine/*`, `engine/static/gallery/*` (3 novas), `server.ts`, `engine/engine_bridge.ts`, `src/App.tsx`, `src/components/*`, `src/utils/*` (novos), `src/i18n.ts` (novo), `tests/*` (novos), `Dockerfile` + `docker-compose.yml` (novos).
+
+### Motor (A1-A3)
+
+- **A1 — Watershed** para núcleos encostados (marcadores por distância transformada); as densidades deixam de subestimar núcleos sobrepostos.
+- **A2 — Calibração de escala**: ampliação do objetivo selecionada no upload (40x-1000x) → `px_per_mm` estimado por objetivo; `scale_estimate` propagado até à UI (estimativa claramente etiquetada).
+- **A3 — Train/validation + 3 novas classes**: rim (`kidney_cortex.jpg`, CC BY-SA 2.5, Uwe Gille), pulmão (`lung_alveoli.jpg`, CC BY 2.0, PLoS) e cartilagem hialina (`cartilage_hyaline.jpg`, CC0; imagem pálida — o motor devolve «indeterminado», limitação documentada na galeria). `engine/eval.py` separa treino (9/12, 75%) de validação (2/3, 67%) — as regras de rim/pulmão foram afinadas post-hoc contra as imagens de validação (documentado no próprio eval).
+
+### Produto (B1-B6)
+
+- **B1 — Comparativo offline**: `POST /api/compare-local` compara quaisquer duas lâminas (upload ou galeria) com o motor local — tabela de 7 métricas com deltas («densidade 2,3× maior»), sem chave Gemini.
+- **B2 — Histórico persistente**: análises de uploads guardadas em localStorage (miniatura + título, máximo 30) e reabríveis no separador «As minhas lâminas» do atlas.
+- **B3 — Exportar relatório**: Markdown descarregável + versão imprimível (PDF via print) com classificação, métricas, critérios e anotações.
+- **B4 — Repetição espaçada (SM-2)**: `src/utils/spacedRepetition.ts` — perguntas falhadas voltam primeiro nas sessões seguintes; intervalos 1 → 6 → n×EF; persiste em `histoscope_srs`.
+- **B5 — Overlay interativo**: `nuclei` (até 800) no payload da análise; pontos clicáveis sobre a lâmina com métricas individuais (área, perímetro, circularidade, elongação) — posições corrigidas para o letterbox do stage 800×600.
+- **B6 — Perguntas dissertativas**: as questões «open» do motor passam a ser mostradas com resposta modelo + autoavaliação «Acertei/Errei», registando no histórico do quiz e no SRS.
+
+### Engenharia (C1-C4)
+
+- **C1 — Testes de contrato JS**: vitest com 17 testes (12 do contrato motor → UI, 5 do SRS); CI corre `npm run test:js` antes do build.
+- **C2 — Docker**: multi-stage `node:20-slim`/`python:3.12-slim`; dependências Python fixadas; `docker compose up --build` serve a app em `127.0.0.1:3000`.
+- **C3 — Tutor offline com contexto**: as métricas da lâmina ativa são enviadas ao `localChat` — respostas com números reais («300 núcleos, densidade ≈245/mm²»).
+- **C4 — i18n pt/en**: `src/i18n.ts` com dicionário e deteção/uso guardado em localStorage; toggle PT/EN no cabeçalho. Cobertura inicial: navegação principal (conteúdo pedagógico permanece pt).
+
+**Verificação.** `tsc --noEmit` limpo; `npx vitest run` 17/17; `pytest -q engine/` 18/18; `python engine/eval.py` treino 9/12 (75%), validação 2/3 (67%), total 11/15 (73%); `npm run build` ok.

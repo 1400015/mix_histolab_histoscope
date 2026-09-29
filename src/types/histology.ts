@@ -48,10 +48,14 @@ export interface TissueClassification {
 
 export interface AcademicQuizQuestion {
   id?: string;
-  questionType?: 'multiple_choice' | 'fill_blank';
+  // B6: perguntas dissertativas ("open") com resposta modelo e
+  // autoavaliação "acertei/errei" pelo aluno — não auto-corrigíveis.
+  questionType?: 'multiple_choice' | 'fill_blank' | 'open';
   question: string;
   options: string[];
   correctOptionIndex: number;
+  // Para 'open': resposta modelo esperada (não é opção, é referência).
+  modelAnswer?: string;
   acceptableAnswers?: string[];
   explanation: string;
   category: string; // 'Identificação Estrutural' | 'Histoquímica' | 'Diagnóstico Diferencial' | 'Fisiopatologia'

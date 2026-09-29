@@ -16,6 +16,8 @@ interface HistologyTutorModalProps {
   onClose: () => void;
   tissueContext: string;
   imageBase64?: string;
+  // C3: métricas do motor local para o tutor offline responder com números.
+  localFeatures?: Record<string, number>;
 }
 
 interface ChatMessage {
@@ -30,6 +32,7 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
   onClose,
   tissueContext,
   imageBase64,
+  localFeatures,
 }) => {
   // A11y: fechar com Escape (melhoria 2026-09-28).
   useEffect(() => {
@@ -90,6 +93,7 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
           messages: newHistory.map((m) => ({ role: m.role, text: m.content })),
           tissueContext,
           imageBase64: imageBase64 || undefined,
+          localFeatures: localFeatures || undefined,
           modelChoice,
           rolePersona,
         }),

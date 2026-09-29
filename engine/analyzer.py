@@ -24,7 +24,7 @@ _STAIN = np.array([
 ], dtype=np.float64)
 _STAIN_INV = np.linalg.inv(_STAIN)
 
-TISSUE_TYPES = ["epithelial", "connective", "muscular", "nervous", "adipose", "liver"]
+TISSUE_TYPES = ["epithelial", "connective", "muscular", "nervous", "adipose", "liver", "cartilage", "kidney", "lung"]
 
 
 def _decompose_he(bgr: np.ndarray) -> dict[str, np.ndarray]:
@@ -42,9 +42,67 @@ def _decompose_he(bgr: np.ndarray) -> dict[str, np.ndarray]:
     return out
 
 
+def _split_touching_nuclei(clean: np.ndarray, labels: np.ndarray, stats: np.ndarray,
+                           min_area: int) -> np.ndarray:
+    """Split touching nuclei via distance-transform seeded watershed.
+
+    Only components plausibly holding 2+ nuclei (area >= 2 * min_area and
+    elongated/large) are split; small round ones pass through untouched.
+    Returns new label map where each split part gets a unique label.
+    """
+    out = np.zeros_like(labels)
+    next_label = 0
+    for i in range(1, stats.shape[0]):
+        comp = labels == i
+        area = stats[i, cv2.CC_STAT_AREA]
+        if area < 6 * min_area:
+            next_label += 1
+            out[comp] = next_label
+            continue
+        dist = cv2.distanceTransform(comp.astype(np.uint8), cv2.DIST_L2, 5)
+        if dist.max() <= 0:
+            next_label += 1
+            out[comp] = next_label
+            continue
+        # Seeds = local maxima at ~60% of the component's peak distance
+        _, sure = cv2.threshold(dist, 0.70 * dist.max(), 255, cv2.THRESH_BINARY)
+        sure = np.uint8(sure)
+        # Seeds must be substantial: each >= min_area/3 px, else noise
+        nseeds, seed_lab, seed_stats, _ = cv2.connectedComponentsWithStats(sure)
+        valid_seeds = 0
+        seed_map = np.zeros_like(seed_lab)
+        next_seed = 0
+        for s in range(1, nseeds):
+            if seed_stats[s, cv2.CC_STAT_AREA] >= max(min_area // 3, 5):
+                valid_seeds += 1
+                next_seed += 1
+                seed_map[seed_lab == s] = next_seed
+        if valid_seeds < 2:
+            next_label += 1
+            out[comp] = next_label
+            continue
+        # h-minima suppression on the distance map to avoid spurious minima
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        dist_s = cv2.morphologyEx(dist, cv2.MORPH_OPEN, kernel)
+        markers = seed_map.astype(np.int32)
+        markers = markers + 1
+        markers[~comp] = 0
+        bgr3 = cv2.cvtColor((comp * 255).astype(np.uint8), cv2.COLOR_GRAY2BGR)
+        cv2.watershed(bgr3, markers)
+        markers[markers <= 1] = 0
+        markers[~comp] = 0
+        for lab in np.unique(markers):
+            if lab > 0:
+                next_label += 1
+                out[markers == lab] = next_label
+    return out
+
+
 def _segment_nuclei(h_ch: np.ndarray, min_area: int = 15, max_area: int = 4000):
-    """Threshold hematoxylin channel; each valid component is one nucleus."""
+    """Threshold hematoxylin channel and split touching nuclei (watershed)."""
     blurred = cv2.GaussianBlur(h_ch, (5, 5), 0)
+    # Adaptive normalization: Otsu on images with weak basophilia fails to
+    # find nuclei; stretch the channel by p99 before thresholding.
     _, th = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     mask = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel, iterations=2)
@@ -54,8 +112,22 @@ def _segment_nuclei(h_ch: np.ndarray, min_area: int = 15, max_area: int = 4000):
     keep = np.zeros(n, dtype=bool)
     keep[1:] = (stats[1:, cv2.CC_STAT_AREA] >= min_area) & (stats[1:, cv2.CC_STAT_AREA] <= max_area)
     clean = keep[labels].astype(np.uint8) * 255
-    markers = labels.copy()
-    markers[~keep[labels]] = 0
+
+    # Split touching nuclei inside kept components (A1)
+    lab_kept = labels.copy()
+    lab_kept[~keep[labels]] = 0
+    if lab_kept.max() > 0:
+        sub_n, sub_lab, sub_stats, _ = cv2.connectedComponentsWithStats((lab_kept > 0).astype(np.uint8), 8)
+        # Rebuild per-component label map for the splitter
+        markers = _split_touching_nuclei(clean, sub_lab, sub_stats, min_area)
+        # Enforce min_area on split parts
+        final_n, final_lab, final_stats, _ = cv2.connectedComponentsWithStats((markers > 0).astype(np.uint8), 8)
+        good = np.zeros(final_n, dtype=bool)
+        good[1:] = final_stats[1:, cv2.CC_STAT_AREA] >= max(min_area, 10)
+        markers = np.where(good[final_lab], final_lab, 0).astype(np.int32)
+        clean = np.where(markers > 0, 255, 0).astype(np.uint8)
+    else:
+        markers = lab_kept
     return markers, clean
 
 
@@ -184,6 +256,34 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
         reasons["liver"].append("núcleos muito numerosos, pequenos e monótonos (cordas hepáticas)")
     elif density > 40 and area < 150 and circularity > 0.7 and stroma < 0.3:
         scores["liver"] += 2.0
+
+    # --- Cartilage (A3): sparse nuclei, uniform small round chondrocytes in
+    # lacunae, abundant eosinophilic matrix, low density, low empty ---
+    if 5 <= density < 60 and stroma > 0.40 and area < 200 and circularity > 0.65 and empty < 0.08 and hema < 30:
+        scores["cartilage"] += 3.5
+        reasons["cartilage"].append("condrócitos pequenos e regulares dispersos em matriz eosinofílica abundante")
+    if eosin > 110 and 3 < density < 35 and elong < 2.0 and hema < 20 and stroma > 0.45:
+        scores["cartilage"] += 1.5
+
+    # --- Kidney (A3): córtex renal com basofilia tubular MUITO intensa —
+    # assinatura distinta do fígado (hema baixo, eosina dominante): túbulos
+    # justapostos com núcleos pequenos, densos e regulares em estroma escasso.
+    if hema > 70 and density > 35 and area < 100 and stroma < 0.10:
+        scores["kidney"] += 6.5
+        reasons["kidney"].append("basofilia tubular intensa com núcleos pequenos, densos e regulares (córtex renal)")
+    elif hema > 50 and density > 30 and area < 120 and stroma < 0.15:
+        scores["kidney"] += 2.0
+
+    # --- Lung (A3): parênquima alveolar — espaços aéreos claros moderados
+    # (28–45%, abaixo do adiposo unilocular >45%) com septos finos e
+    # densidade nuclear apreciável nas paredes alveolares.
+    if 0.28 < empty <= 0.45 and density > 40:
+        scores["lung"] += 7.0
+        reasons["lung"].append("espaços aéreos alveolares com septos finos e núcleos nas paredes")
+    if empty > 0.30 and hema < 40 and stroma < 0.35:
+        scores["lung"] += 1.5
+    if 0.28 < empty <= 0.45 and density > 40 and stroma < 0.35 and circularity > 0.85:
+        scores["lung"] += 1.5
 
     total = sum(scores.values()) + 1e-9
     best = max(scores, key=scores.get)  # type: ignore[arg-type]

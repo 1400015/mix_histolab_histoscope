@@ -46,6 +46,7 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [tissueHint, setTissueHint] = useState<string>('');
   const [stainHint, setStainHint] = useState<string>('Hematoxilina e Eosina (H&E)');
+  const [magnification, setMagnification] = useState<string>('');
   const [customInstructions, setCustomInstructions] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [analysisStage, setAnalysisStage] = useState<string>('');
@@ -121,6 +122,7 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
           tissueHint: tissueHint.trim() || undefined,
           stainHint: stainHint.trim() || undefined,
           customInstructions: customInstructions.trim() || undefined,
+          magnification: magnification || undefined,
         }),
       });
 
@@ -266,6 +268,23 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
               </select>
             </div>
 
+            <div>
+              <label className="block text-slate-300 font-medium mb-1">
+                Ampliação do Objetivo (Opcional — calibra a escala):
+              </label>
+              <select
+                value={magnification}
+                onChange={(e) => setMagnification(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="">Não sei / Usar padrão</option>
+                <option value="40x">40x (varredura rápida)</option>
+                <option value="100x">100x</option>
+                <option value="200x">200x</option>
+                <option value="400x">400x (imersão a seco)</option>
+                <option value="1000x">1000x (imersão em óleo)</option>
+              </select>
+            </div>
             <div>
               <label className="block text-slate-300 font-medium mb-1">
                 Suspeita de Tecido ou Órgão (Opcional):

@@ -9,6 +9,7 @@ import {
   localAnalyze,
   localAnalyzeBase64,
   localQuestions,
+  buildLocalComparison,
   localChat,
   featuresToPromptContext,
   localAnalysisToHistology,
@@ -68,7 +69,7 @@ const getGenAI = () => {
 // API Route: Histological Image Analysis
 app.post('/api/analyze-histology', async (req: Request, res: Response) => {
   try {
-    const { imageBase64, mimeType = 'image/jpeg', tissueHint, stainHint, customInstructions, mode = 'auto' } = req.body;
+    const { imageBase64, mimeType = 'image/jpeg', tissueHint, stainHint, customInstructions, mode = 'auto', magnification } = req.body;
 
     if (!imageBase64) {
       return res.status(400).json({ error: 'Nenhuma imagem foi fornecida para análise.' });
@@ -77,7 +78,7 @@ app.post('/api/analyze-histology', async (req: Request, res: Response) => {
     // Local deterministic CV analysis (always attempted; free, offline, grounds Gemini)
     let localAnalysis: LocalAnalysis | null = null;
     try {
-      localAnalysis = await localAnalyzeBase64(imageBase64);
+      localAnalysis = await localAnalyzeBase64(imageBase64, magnification);
     } catch (e: any) {
       console.error('Motor local indisponível:', e.message);
     }
@@ -205,6 +206,41 @@ app.post('/api/generate-quiz', async (req: Request, res: Response) => {
 });
 
 // API Route: Side-by-Side Histological Slide Comparison
+// API Route: Offline comparison (B1) — runs the local CV engine on both the
+// uploaded sample and a real gallery slide, then returns a ComparisonResult
+// with side-by-side metrics and deltas. Works WITHOUT GEMINI_API_KEY.
+app.post('/api/compare-local', async (req: Request, res: Response) => {
+  try {
+    const { imageBase64, galleryKey, magnification, primaryLabel, referenceLabel } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Nenhuma imagem da amostra foi fornecida.' });
+    }
+    if (!galleryKey || !GALLERY_KEYS.has(galleryKey)) {
+      return res.status(404).json({ error: 'Lâmina de referência desconhecida na galeria.' });
+    }
+    // imageBase64 pode ser "gallery:<key>" quando a amostra em estudo é ela
+    // própria uma lâmina da galeria real (não há base64 no cliente nesse caso).
+    const primary = imageBase64.startsWith('gallery:')
+      ? await localAnalyze(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${imageBase64.slice('gallery:'.length)}.jpg`))
+      : await localAnalyzeBase64(imageBase64, magnification);
+    const refPath = path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${galleryKey}.jpg`);
+    const reference = await localAnalyze(refPath);
+    const result = buildLocalComparison(
+      primary,
+      reference,
+      primaryLabel || 'Amostra em estudo',
+      referenceLabel || 'Lâmina de referência',
+    );
+    return res.json({ ...result, mode: 'local' });
+  } catch (error: any) {
+    console.error('Erro na comparação offline:', error);
+    return res.status(500).json({
+      error: 'Falha na comparação offline do motor local.',
+      details: error.message || String(error),
+    });
+  }
+});
+
 app.post('/api/compare-slides', async (req: Request, res: Response) => {
   try {
     const { primarySlide, referenceSlide } = req.body;
@@ -256,6 +292,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       messages,
       tissueContext,
       imageBase64,
+      localFeatures,
       mimeType,
       modelChoice = MODEL_MAIN,
       rolePersona = 'pathologist',
@@ -267,7 +304,9 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     if (!hasGemini()) {
       const last = messages[messages.length - 1];
-      const reply = await localChat(last.text || last.content || '', tissueContext, undefined);
+      // C3: passa as métricas reais da lâmina ao tutor offline — respostas
+      // com números concretos em vez de respostas genéricas sem contexto.
+      const reply = await localChat(last.text || last.content || '', tissueContext, localFeatures);
       return res.json({ ...reply, modelUsed: 'local-tutor' });
     }
 

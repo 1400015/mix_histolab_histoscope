@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ReferenceTissueSlide, HistologyAnalysis } from '../types/histology';
 import { REFERENCE_SLIDES } from '../data/referenceSlides';
+import { listAnalyses, deleteAnalysis, type StoredAnalysis } from '../utils/analysisHistory';
 import {
   X,
   Search,
@@ -10,6 +11,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   Loader2,
+  FolderOpen,
 } from 'lucide-react';
 
 /** Lâmina real da galeria (micrografia CC) — contrato de GET /api/gallery. */
@@ -36,6 +38,8 @@ interface ReferenceAtlasDrawerProps {
   onSelectSlide: (slide: ReferenceTissueSlide) => void;
   onSelectGallerySlide: (item: GalleryItem, analysis: GalleryAnalysis) => void;
   activeSlideId: string;
+  // B2: reabrir análises guardadas no histórico local.
+  onSelectStoredAnalysis?: (entry: StoredAnalysis) => void;
 }
 
 export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
@@ -44,15 +48,21 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
   onSelectSlide,
   onSelectGallerySlide,
   activeSlideId,
+  onSelectStoredAnalysis,
 }) => {
   const [selectedFamily, setSelectedFamily] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Melhoria 2026-09-28: a galeria real (12 micrografias fotográficas) passou
   // a ser acessível pela UI — antes só os SVG sintéticos eram alcançáveis.
-  const [tab, setTab] = useState<'atlas' | 'gallery'>('atlas');
+  const [tab, setTab] = useState<'atlas' | 'gallery' | 'mine'>('atlas');
   const [galleryItems, setGalleryItems] = useState<GalleryItem[] | null>(null);
   const [galleryError, setGalleryError] = useState<string | null>(null);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  // B2: histórico local de análises — recarrega quando o drawer abre.
+  const [stored, setStored] = useState<StoredAnalysis[]>([]);
+  useEffect(() => {
+    if (isOpen) setStored(listAnalyses());
+  }, [isOpen]);
 
   // A11y: fechar com Escape.
   useEffect(() => {
@@ -161,8 +171,74 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
             <Camera className="w-3.5 h-3.5" />
             Galeria real (fotos)
           </button>
+          {onSelectStoredAnalysis && (
+            <button
+              onClick={() => setTab('mine')}
+              className={`px-3 py-2 text-xs font-semibold rounded-t-md transition-colors flex items-center gap-1.5 ${
+                tab === 'mine' ? 'bg-slate-900 text-indigo-300 border border-slate-800 border-b-transparent' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              As minhas lâminas ({stored.length})
+            </button>
+          )}
         </div>
 
+        {tab === 'mine' && (
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {stored.length === 0 ? (
+              <div className="text-center py-16 space-y-2">
+                <FolderOpen className="w-8 h-8 mx-auto text-slate-600" />
+                <p className="text-xs text-slate-400">
+                  Ainda não há análises guardadas. Carrega uma lâmina em «Analisar Imagem» —
+                  as análises ficam guardadas automaticamente neste separador.
+                </p>
+              </div>
+            ) : (
+              stored.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-700 transition-colors"
+                >
+                  {entry.thumbnail ? (
+                    <img src={entry.thumbnail} alt={entry.title} className="w-16 h-16 object-cover rounded-lg border border-slate-800" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">
+                      <Microscope className="w-5 h-5 text-slate-600" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-slate-100 truncate">{entry.title}</div>
+                    <div className="text-[11px] text-slate-400 truncate">
+                      {entry.tissue} · {entry.confidence}
+                    </div>
+                    <div className="text-[10px] text-slate-500">
+                      {new Date(entry.date).toLocaleString('pt-PT')} · {entry.mode === 'gemini' ? 'Gemini' : 'Motor local'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => onSelectStoredAnalysis?.(entry)}
+                      className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[11px] font-semibold"
+                    >
+                      Abrir
+                    </button>
+                    <button
+                      onClick={() => {
+                        deleteAnalysis(entry.id);
+                        setStored(listAnalyses());
+                      }}
+                      title="Apagar do histórico"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
         {/* Filter and Search Bar */}
         <div className="p-4 border-b border-slate-800 space-y-3 bg-slate-950/50">
           {/* Search Input */}

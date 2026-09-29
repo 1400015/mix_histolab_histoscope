@@ -68,7 +68,7 @@ def test_galeria_classifica_sem_excepcao(item: dict) -> None:
     result = analyze_image(img)
     known = {
         "epithelial", "connective", "muscular", "nervous",
-        "adipose", "liver", "indeterminate",
+        "adipose", "liver", "cartilage", "kidney", "lung", "indeterminate",
     }
     assert result["tissue"] in known
     assert isinstance(result["features"]["n_nuclei"], int)

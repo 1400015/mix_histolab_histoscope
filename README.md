@@ -62,7 +62,7 @@ npm run dev            # http://localhost:3000
 
 ## Motor local (Histolab)
 
-Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E (Ruifrok & Johnston) → segmentação de núcleos (Otsu + morfologia) → morfometria (área, circularidade, elongação) → features globais (densidade nuclear/mm², razão de estroma, espaços claros) → classificação por regras com confiança e evidência. **Precisão medida: 9/12 (75%)** na galeria de referência — reprodutível com `python engine/eval.py`. As 3 lâminas restantes devolvem «indeterminado» em vez de falsos positivos (as alegações anteriores de 92% não eram verificáveis — nenhum script de avaliação existia).
+Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E (Ruifrok & Johnston) → segmentação de núcleos (Otsu + morfologia) → morfometria (área, circularidade, elongação) → features globais (densidade nuclear/mm², razão de estroma, espaços claros) → classificação por regras com confiança e evidência. **Precisão medida: 11/15 (73%)** — treino 9/12 (75%), validação 2/3 (67%) — reprodutível com `python engine/eval.py`. As 3 lâminas restantes devolvem «indeterminado» em vez de falsos positivos (as alegações anteriores de 92% não eram verificáveis — nenhum script de avaliação existia).
 
 ## Galeria de referência
 

@@ -19,6 +19,9 @@ interface MicroscopeViewerProps {
   svgContent?: string;
   // Segmentação de núcleos do motor local (data URL) — melhoria 2026-09-28.
   overlaySrc?: string;
+  // B5: núcleos segmentados pelo motor local (coordenadas em px da imagem
+  // original) — pontos clicáveis com métricas individuais.
+  nuclei?: { x: number; y: number; area: number; perimeter: number; circularity: number; elongation: number }[];
   title: string;
   staining: string;
   magnification?: string;
@@ -38,6 +41,7 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
   imageSrc,
   svgContent,
   overlaySrc,
+  nuclei,
   title,
   staining,
   constituents,
@@ -61,6 +65,27 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
   const [contrast, setContrast] = useState<number>(100);
   const [objectiveLens, setObjectiveLens] = useState<string>('40x');
   const [showOverlay, setShowOverlay] = useState<boolean>(false);
+  // B5: overlay interativo — retângulo da imagem contida no stage 800×600
+  // (object-contain gera letterbox) + núcleo selecionado.
+  const [contained, setContained] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [selectedNucleusIdx, setSelectedNucleusIdx] = useState<number | null>(null);
+  useEffect(() => {
+    setSelectedNucleusIdx(null);
+  }, [imageSrc]);
+  useEffect(() => {
+    if (!natural) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const stageW = stage.clientWidth;
+    const stageH = stage.clientHeight;
+    if (!stageW || !stageH || !natural.w || !natural.h) return;
+    const scale = Math.min(stageW / natural.w, stageH / natural.h);
+    const w = natural.w * scale;
+    const h = natural.h * scale;
+    setContained({ x: (stageW - w) / 2, y: (stageH - h) / 2, w, h });
+  }, [natural, imageSrc]);
+
 
   // Mostra a segmentação automaticamente quando chega um overlay novo.
   useEffect(() => {
@@ -323,6 +348,12 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
               alt={title}
               className="w-full h-full object-contain pointer-events-none rounded shadow-2xl"
               draggable={false}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  setNatural({ w: img.naturalWidth, h: img.naturalHeight });
+                }
+              }}
             />
           ) : svgContent ? (
             <div
@@ -332,6 +363,68 @@ export const MicroscopeViewer: React.FC<MicroscopeViewerProps> = ({
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-500">
               Nenhuma imagem carregada
+            </div>
+          )}
+
+
+          {/* B5: marcadores interativos dos núcleos segmentados pelo motor local */}
+          {imageSrc && showOverlay && nuclei && nuclei.length > 0 && contained && (
+            <div className="absolute inset-0 z-30" data-testid="nuclei-markers">
+              {nuclei.map((n, idx) => {
+                const left = contained.x + (n.x / (natural?.w || 1)) * contained.w;
+                const top = contained.y + (n.y / (natural?.h || 1)) * contained.h;
+                const isSel = selectedNucleusIdx === idx;
+                return (
+                  <button
+                    key={`nucleus-${idx}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedNucleusIdx(isSel ? null : idx);
+                    }}
+                    title={`Núcleo #${idx + 1}`}
+                    style={{ left: `${left}px`, top: `${top}px` }}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border transition-all ${
+                      isSel
+                        ? 'w-4 h-4 bg-amber-400 border-white shadow-lg z-40'
+                        : 'w-2 h-2 bg-emerald-400/70 border-emerald-200/60 hover:bg-emerald-300 hover:w-3 hover:h-3 z-30'
+                    }`}
+                  />
+                );
+              })}
+              {selectedNucleusIdx !== null && nuclei[selectedNucleusIdx] && (() => {
+                const n = nuclei[selectedNucleusIdx];
+                const left = Math.min(
+                  Math.max(contained.x + (n.x / (natural?.w || 1)) * contained.w, 130),
+                  (stageRef.current?.clientWidth || 800) - 130
+                );
+                const top = Math.max(contained.y + (n.y / (natural?.h || 1)) * contained.h - 14, 8);
+                return (
+                  <div
+                    style={{ left: `${left}px`, top: `${top}px` }}
+                    className="absolute -translate-x-1/2 -translate-y-full z-50 bg-slate-950/95 border border-emerald-500/60 rounded-lg px-3 py-2 shadow-2xl pointer-events-auto"
+                  >
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <span className="text-xs font-semibold text-emerald-300">Núcleo #{selectedNucleusIdx + 1}</span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedNucleusIdx(null); }}
+                        className="text-slate-400 hover:text-white"
+                        title="Fechar"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-slate-200 space-y-0.5 tabular-nums">
+                      <div>Área: {n.area.toFixed(1)} px²</div>
+                      <div>Perímetro: {n.perimeter.toFixed(1)} px</div>
+                      <div>Circularidade: {n.circularity.toFixed(2)}</div>
+                      <div>Elongação: {n.elongation.toFixed(2)}</div>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1 pt-1 border-t border-slate-700/60">
+                      Circularidade 1,0 = círculo perfeito · Elongação alta = forma alongada
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

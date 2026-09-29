@@ -27,12 +27,19 @@ interface SlideComparisonModalProps {
     svgContent?: string;
     description?: string;
   };
+  // B1: base64 da amostra (upload) ou key da galeria (lâmina real).
+  imageBase64?: string;
+  galleryKey?: string;
+  magnification?: string;
 }
 
 export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
   isOpen,
   onClose,
   primarySlide,
+  imageBase64,
+  galleryKey,
+  magnification,
 }) => {
   // A11y: fechar com Escape (melhoria 2026-09-28).
   useEffect(() => {
@@ -58,6 +65,12 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   const [comparisonError, setComparisonError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'visual' | 'analysis'>('visual');
+  // B1: comparação offline (motor local, sem GEMINI_API_KEY)
+  const [galleryOptions, setGalleryOptions] = useState<{ key: string; title: string; tissue: string }[] | null>(null);
+  const [refGalleryKey, setRefGalleryKey] = useState<string>('');
+  const [isLocalComparing, setIsLocalComparing] = useState<boolean>(false);
+  const [localResult, setLocalResult] = useState<ComparisonResult | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const referenceSlide =
     REFERENCE_SLIDES.find((s) => s.id === selectedRefId) || REFERENCE_SLIDES[0];
@@ -67,6 +80,50 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
     setComparisonResult(null);
     setComparisonError(null);
   }, [selectedRefId, primarySlide.title]);
+
+  // B1: carrega a lista de lâminas reais da galeria para a comparação offline.
+  useEffect(() => {
+    if (!isOpen || galleryOptions) return;
+    fetch('/api/gallery', { signal: AbortSignal.timeout(15_000) })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((d: { items: { key: string; title: string; tissue: string }[] }) => {
+        setGalleryOptions(d.items ?? []);
+        if (d.items?.length) setRefGalleryKey(d.items[0].key);
+      })
+      .catch(() => setGalleryOptions([]));
+  }, [isOpen, galleryOptions]);
+
+  // B1: corre a comparação offline (motor CV local em ambas as imagens).
+  const handleRunLocalComparison = async () => {
+    if (!refGalleryKey || !(imageBase64 || galleryKey)) return;
+    try {
+      setIsLocalComparing(true);
+      setLocalError(null);
+      setLocalResult(null);
+      const response = await fetch('/api/compare-local', {
+        signal: AbortSignal.timeout(120_000),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: imageBase64 || `gallery:${galleryKey}`,
+          galleryKey: refGalleryKey,
+          magnification,
+          primaryLabel: primarySlide.title,
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `HTTP ${response.status}`);
+      }
+      const data: ComparisonResult = await response.json();
+      setLocalResult(data);
+      setActiveTab('analysis');
+    } catch (err: any) {
+      setLocalError(err?.name === 'TimeoutError' ? 'A comparação excedeu o tempo limite.' : err.message || 'Erro no motor local.');
+    } finally {
+      setIsLocalComparing(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -194,7 +251,44 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
             </select>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* B1: comparação offline — motor local, funciona sem GEMINI_API_KEY */}
+            <div className="flex items-center gap-1.5">
+              <select
+                value={refGalleryKey}
+                onChange={(e) => setRefGalleryKey(e.target.value)}
+                aria-label="Lâmina da galeria para comparação offline"
+                className="bg-slate-900 border border-slate-700/80 rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 max-w-[220px]"
+              >
+                {(galleryOptions ?? []).map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleRunLocalComparison}
+                disabled={isLocalComparing || !refGalleryKey || !(imageBase64 || galleryKey)}
+                title={
+                  imageBase64 || galleryKey
+                    ? 'Corre o motor local nas duas lâminas e compara métricas com deltas (sem IA na nuvem)'
+                    : 'Disponível para imagens carregadas ou lâminas da galeria real'
+                }
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+              >
+                {isLocalComparing ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>A Comparar Offline...</span>
+                  </>
+                ) : (
+                  <>
+                    <SplitSquareVertical className="w-3.5 h-3.5" />
+                    <span>Comparação Offline (motor local)</span>
+                  </>
+                )}
+              </button>
+            </div>
             <label className="flex items-center gap-1.5 text-slate-400 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -358,6 +452,86 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
                 </div>
               )}
 
+              {localError && (
+                <div className="p-4 bg-rose-950/40 border border-rose-800/60 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{localError}</span>
+                </div>
+              )}
+              {localResult && !comparisonResult && (
+                <div className="space-y-6 max-w-5xl mx-auto">
+                  <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-800/40 text-xs space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-400 font-bold uppercase tracking-wider text-[11px]">
+                      <SplitSquareVertical className="w-4 h-4" />
+                      <span>Comparação Offline do Motor Local (sem IA na nuvem)</span>
+                    </div>
+                    <p className="text-slate-200 leading-relaxed text-sm">{localResult.comparisonSummary}</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-900/40 space-y-3">
+                      <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Semelhanças ({localResult.similarities.length})</span>
+                      </div>
+                      <ul className="space-y-2 text-xs text-emerald-100/90">
+                        {localResult.similarities.map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-emerald-400 font-bold">✓</span>
+                            <span className="leading-relaxed">{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-900/40 space-y-3">
+                      <div className="flex items-center gap-2 text-amber-400 font-semibold text-xs uppercase tracking-wider">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Variações ({localResult.potentialAnomaliesOrVariations.length})</span>
+                      </div>
+                      <ul className="space-y-2 text-xs text-amber-100/90">
+                        {localResult.potentialAnomaliesOrVariations.map((item, idx) => (
+                          <li key={idx} className="flex items-start gap-2">
+                            <span className="text-amber-400 font-bold">!</span>
+                            <span className="leading-relaxed">{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+                    <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                      <HelpCircle className="w-4 h-4 text-emerald-400" />
+                      <span>Métricas Morfométricas Lado a Lado (motor local)</span>
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-800 text-slate-400 font-medium">
+                            <th className="py-2 pr-3">Métrica</th>
+                            <th className="py-2 pr-3 text-indigo-300">{primarySlide.title}</th>
+                            <th className="py-2 text-emerald-300">Referência da galeria</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {localResult.differences.map((diff, idx) => (
+                            <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
+                              <td className="py-2.5 pr-3 font-semibold text-slate-200 align-top">{diff.feature}</td>
+                              <td className="py-2.5 pr-3 text-slate-300 align-top">{diff.primarySampleObservation}</td>
+                              <td className="py-2.5 text-slate-300 align-top">{diff.referenceObservation}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/40 to-slate-950 border border-emerald-800/30 text-xs space-y-1.5">
+                    <div className="text-emerald-300 font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-emerald-400" />
+                      <span>Conclusão do Motor Local</span>
+                    </div>
+                    <p className="text-slate-100 text-sm leading-relaxed font-medium">{localResult.diagnosticConclusion}</p>
+                  </div>
+                </div>
+              )}
               {comparisonResult ? (
                 <div className="space-y-6 max-w-5xl mx-auto">
                   {/* Summary Box */}
@@ -464,7 +638,7 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
                     Análise comparativa ainda não executada para este par de lâminas
                   </h3>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Clique no botão abaixo para que o modelo de inteligência artificial identifique semelhanças, diferenças morfológicas e padrões diagnósticos.
+                    Clique no botão abaixo para que o modelo de inteligência artificial identifique semelhanças, diferenças morfológicas e padrões diagnósticos — ou use o botão verde «Comparação Offline» na barra superior (funciona sem chave de API).
                   </p>
                   <button
                     onClick={handleRunAIComparison}

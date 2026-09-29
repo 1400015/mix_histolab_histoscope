@@ -18,9 +18,12 @@ import {
   UserAnnotation,
 } from './types/histology';
 import { MicroscopeViewer } from './components/MicroscopeViewer';
+import { detectLang, setLang, t, type Lang } from './i18n';
 import { AnalysisPanel } from './components/AnalysisPanel';
 import { AnnotationSystem } from './components/AnnotationSystem';
 import { SlideComparisonModal } from './components/SlideComparisonModal';
+import { buildAnalysisReport, downloadReport, printReport } from './utils/report';
+import { saveAnalysis, makeThumbnail, type StoredAnalysis } from './utils/analysisHistory';
 import { AcademicQuizModal } from './components/AcademicQuizModal';
 import { ReferenceAtlasDrawer } from './components/ReferenceAtlasDrawer';
 import type { GalleryItem } from './components/ReferenceAtlasDrawer';
@@ -61,6 +64,8 @@ export default function App() {
   const [isProgressOpen, setIsProgressOpen] = useState<boolean>(false);
   const [isComparisonOpen, setIsComparisonOpen] = useState<boolean>(false);
   const [isTutorOpen, setIsTutorOpen] = useState<boolean>(false);
+  // C4: i18n pt/en — idioma detetado/saved em localStorage.
+  const [lang, setLangState] = useState<Lang>(() => detectLang());
 
   // Switch to reference slide
   const handleSelectReferenceSlide = (slide: ReferenceTissueSlide) => {
@@ -129,6 +134,24 @@ export default function App() {
     setSelectedAnnotationId(null);
     setIsDrawingMode(false);
     setRightPanelMode('analysis');
+    // B2: persiste a análise para sobreviver ao refresh.
+    void makeThumbnail(result.imageBase64).then((thumb) => {
+      const entry: StoredAnalysis = {
+        id: uploadId,
+        title: result.title,
+        staining: result.staining,
+        tissue: result.analysis.tissueClassification.primaryTissue,
+        organ: result.analysis.tissueClassification.probableOrgan,
+        confidence: result.analysis.tissueClassification.confidenceLevel,
+        mode: (result.analysis as { mode?: string }).mode || 'local',
+        date: new Date().toISOString(),
+        thumbnail: thumb,
+        analysis: result.analysis,
+        localFeatures:
+          (result.localAnalysis as { features?: Record<string, number> } | null)?.features ?? null,
+      };
+      saveAnalysis(entry);
+    });
   };
 
   const handleAddAnnotation = (ann: UserAnnotation) => {
@@ -155,9 +178,9 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-sm font-extrabold text-white tracking-tight flex items-center gap-1.5">
-                <span>HistoScope AI</span>
+                <span>{t(lang).appTitle}</span>
                 <span className="text-[10px] font-mono uppercase bg-indigo-950 text-indigo-300 border border-indigo-800/60 px-1.5 py-0.2 rounded font-normal">
-                  Patologia & Treino
+                  {t(lang).appSubtitle}
                 </span>
               </h1>
             </div>
@@ -180,56 +203,64 @@ export default function App() {
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
           >
             <Upload className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Nova Imagem</span>
+            <span className="hidden sm:inline">{t(lang).newImage}</span>
           </button>
 
           {/* Side-by-side Comparison Button */}
           <button
             onClick={() => setIsComparisonOpen(true)}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
-            title="Comparação Lado a Lado com Lâminas de Referência"
+            title={t(lang).compareTitle}
           >
             <SplitSquareVertical className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">Comparar Lado a Lado</span>
+            <span className="hidden md:inline">{t(lang).compareSide}</span>
           </button>
 
           {/* Reference Atlas Library */}
           <button
             onClick={() => setIsAtlasOpen(true)}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
-            title="Atlas de Lâminas de Referência"
+            title={t(lang).atlasTitle}
           >
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden md:inline">Atlas de Tecidos</span>
+            <span className="hidden md:inline">{t(lang).atlas}</span>
           </button>
 
           {/* Academic Quiz Mode */}
           <button
             onClick={() => setIsQuizOpen(true)}
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium transition-colors"
-            title="Avaliação Académica & Treino"
+            title={t(lang).quizTitle}
           >
             <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden md:inline">Avaliação</span>
+            <span className="hidden md:inline">{t(lang).quiz}</span>
           </button>
 
           {/* User Progress Dashboard */}
           <button
             onClick={() => setIsProgressOpen(true)}
             className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors"
-            title="Progresso e Histórico de Testes"
+            title={t(lang).progressTitle}
           >
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden xl:inline">Progresso</span>
+            <span className="hidden xl:inline">{t(lang).progress}</span>
           </button>
 
           {/* AI Histology Tutor Chat */}
           <button
             onClick={() => setIsTutorOpen(true)}
             className="p-1.5 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg text-xs transition-colors border border-slate-700"
-            title="Tutor Universitário de Histologia"
+            title={t(lang).tutorTitle}
           >
             <Bot className="w-4 h-4" />
+          </button>
+          {/* C4: alternar idioma pt/en */}
+          <button
+            onClick={() => { const next = lang === 'pt' ? 'en' : 'pt'; setLang(next); setLangState(next); }}
+            className="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors border border-slate-700"
+            title="Switch language / Mudar idioma"
+          >
+            {lang === 'pt' ? 'EN' : 'PT'}
           </button>
         </div>
       </header>
@@ -244,6 +275,7 @@ export default function App() {
             title={slideTitle}
             staining={slideStaining}
             overlaySrc={overlaySrc}
+            nuclei={(currentLocalAnalysis as { nuclei?: { x: number; y: number; area: number; perimeter: number; circularity: number; elongation: number }[] } | null)?.nuclei ?? undefined}
             magnification={currentAnalysis.tissueClassification.magnificationEstimate || '400x'}
             constituents={currentAnalysis.cellularConstituents}
             selectedConstituent={selectedConstituent}
@@ -302,6 +334,30 @@ export default function App() {
                 selectedConstituent={selectedConstituent}
                 onSelectConstituent={(c) => setSelectedConstituent(c)}
                 onOpenQuiz={() => setIsQuizOpen(true)}
+                onExportMarkdown={() => {
+                  const md = buildAnalysisReport({
+                    title: slideTitle,
+                    staining: slideStaining,
+                    analysis: currentAnalysis,
+                    mode: (currentAnalysis as { mode?: string }).mode,
+                    localFeatures:
+                      (currentLocalAnalysis as { features?: Record<string, number> } | null)?.features ?? null,
+                    annotations: userAnnotations,
+                  });
+                  downloadReport(md, `relatorio_${slideTitle.replace(/\s+/g, '_').toLowerCase()}.md`);
+                }}
+                onExportPrint={() => {
+                  const md = buildAnalysisReport({
+                    title: slideTitle,
+                    staining: slideStaining,
+                    analysis: currentAnalysis,
+                    mode: (currentAnalysis as { mode?: string }).mode,
+                    localFeatures:
+                      (currentLocalAnalysis as { features?: Record<string, number> } | null)?.features ?? null,
+                    annotations: userAnnotations,
+                  });
+                  printReport(md, slideTitle);
+                }}
               />
             ) : (
               <AnnotationSystem
@@ -342,6 +398,8 @@ export default function App() {
           svgContent: slideSvgContent,
           description: slideDescription,
         }}
+        imageBase64={activeSlideId.startsWith('gallery_') ? undefined : slideImageSrc}
+        galleryKey={activeSlideId.startsWith('gallery_') ? activeSlideId.slice('gallery_'.length) : undefined}
       />
 
       {/* MODAL 3: Reference Atlas Drawer */}
@@ -351,6 +409,25 @@ export default function App() {
         onSelectSlide={handleSelectReferenceSlide}
         onSelectGallerySlide={handleSelectGallerySlide}
         activeSlideId={activeSlideId}
+        onSelectStoredAnalysis={(entry) => {
+          // B2: reabrir uma análise guardada — restaura título, imagem e análise
+          // sem voltar a correr o motor.
+          setActiveSlideId(entry.id);
+          setSlideTitle(entry.title);
+          setSlideStaining(entry.staining);
+          setCurrentAnalysis(entry.analysis);
+          setCurrentLocalAnalysis(entry.localFeatures ? { features: entry.localFeatures } : null);
+          setSlideDescription(entry.analysis.tissueClassification.generalDescription);
+          setSlideSvgContent(undefined);
+          setSlideImageSrc(undefined);
+          setUserAnnotations([]);
+          setSelectedConstituent(null);
+          setSelectedAnnotationId(null);
+          setIsDrawingMode(false);
+          setRightPanelMode('analysis');
+          setOverlaySrc(undefined);
+          setIsAtlasOpen(false);
+        }}
       />
 
       {/* MODAL 4: Academic Quiz & Evaluation Engine */}
@@ -385,6 +462,9 @@ export default function App() {
         onClose={() => setIsTutorOpen(false)}
         tissueContext={`${slideTitle} - ${currentAnalysis.tissueClassification.primaryTissue} (${slideStaining})`}
         imageBase64={slideImageSrc}
+        localFeatures={
+          (currentLocalAnalysis as { features?: Record<string, number> } | null)?.features ?? undefined
+        }
       />
     </div>
   );

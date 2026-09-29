@@ -124,5 +124,47 @@
     "file": "gallery/liver.jpg",
     "source_title": "Breast cancer metastasis to liver (1).jpg",
     "provenance": "unverified"
+  },
+  {
+    "key": "cartilage_hyaline",
+    "title": "Cartilagem hialina (H&E)",
+    "tissue": "cartilage",
+    "split": "validation",
+    "description": "Cartilagem hialina humana: condroblastos e condrócitos em lacunas dispersas numa matriz amorfa basófila; pericôndrio em superfície. Nota: coloração H&E pálida — o motor local devolve 'indeterminate' (limitação conhecida para matizes fracamente coradas).",
+    "commons": "Connective_Tissue_Hyaline_Cartilage_(26989336187).jpg",
+    "file": "gallery/cartilage_hyaline.jpg",
+    "source_title": "Connective Tissue Hyaline Cartilage (26989336187).jpg",
+    "author": "NIH Image Gallery (Flickr)",
+    "license": "CC0 (Public Domain)",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Connective_Tissue_Hyaline_Cartilage_(26989336187).jpg",
+    "provenance": "verified"
+  },
+  {
+    "key": "kidney_cortex",
+    "title": "Rim — córtex renal (H&E)",
+    "tissue": "kidney",
+    "split": "validation",
+    "description": "Córtex renal com glomérulos (novilho capsular claro) e túbulos contornados justapostos com epitélio cuboide eosinofílico e núcleos basófilos intensos.",
+    "commons": "Histology-kidney.jpg",
+    "file": "gallery/kidney_cortex.jpg",
+    "source_title": "Histology-kidney.jpg",
+    "author": "Uwe Gille",
+    "license": "CC BY-SA 2.5",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Histology-kidney.jpg",
+    "provenance": "verified"
+  },
+  {
+    "key": "lung_alveoli",
+    "title": "Pulmão — parênquima alveolar (H&E)",
+    "tissue": "lung",
+    "split": "validation",
+    "description": "Parênquima pulmonar com alvéolos de paredes finas e septos interalveolares com pneumócitos e capilares; nota: espécime com enfisema (espaços aéreos dilatados).",
+    "commons": "Emphysema_H_and_E.jpg",
+    "file": "gallery/lung_alveoli.jpg",
+    "source_title": "Emphysema H and E.jpg",
+    "author": "PLoS Med (T Cells Cause Lung Damage in Emphysema)",
+    "license": "CC BY 2.0",
+    "source_url": "https://commons.wikimedia.org/wiki/File:Emphysema_H_and_E.jpg",
+    "provenance": "verified"
   }
 ]

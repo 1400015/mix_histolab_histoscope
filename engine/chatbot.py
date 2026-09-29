@@ -110,6 +110,28 @@ CONTEXT_PREFIX = {
 }
 
 
+def _metrics_line(features: dict) -> str:
+    """C3: linha de métricas só com os campos presentes — sem 'None' na resposta."""
+    bits: list[str] = []
+    if features.get("n_nuclei") is not None:
+        bits.append(f"**{features['n_nuclei']} núcleos**")
+    if features.get("nuclei_per_mm2") is not None:
+        bits.append(f"densidade ≈{features['nuclei_per_mm2']}/mm²")
+    if features.get("median_nucleus_area") is not None:
+        bits.append(f"área mediana {features['median_nucleus_area']} px²")
+    if features.get("median_circularity") is not None:
+        bits.append(f"circularidade média {features['median_circularity']}")
+    if features.get("median_elongation") is not None:
+        bits.append(f"elongação média {features['median_elongation']}")
+    if features.get("stromal_ratio") is not None:
+        bits.append(f"estroma {features['stromal_ratio']}")
+    if features.get("empty_ratio") is not None:
+        bits.append(f"espaços claros {features['empty_ratio']}")
+    if not bits:
+        return "Ainda não há métricas segmentadas para esta lâmina."
+    return "**Métricas da tua imagem**: " + ", ".join(bits) + "."
+
+
 def chat_reply(message: str, tissue: str | None = None, features: dict | None = None) -> dict[str, Any]:
     """Return a tutor reply for a student question. Context is image-derived."""
     intent = _match_intent(message)
@@ -118,10 +140,10 @@ def chat_reply(message: str, tissue: str | None = None, features: dict | None = 
         if tissue and tissue in CONTEXT_PREFIX:
             answer = CONTEXT_PREFIX[tissue] + answer
         if features and intent in ("núcleo", "classificação", "análise automática", "estroma"):
-            answer += f"\n\n**Métricas da tua imagem**: {features.get('n_nuclei')} núcleos, densidade {features.get('nuclei_per_mm2')}/mm², circularidade média {features.get('median_circularity')}, estroma {features.get('stromal_ratio')}."
+            answer += "\n\n" + _metrics_line(features)
         return {"reply": answer, "suggestions": KB[intent]["links"]}
     # Generic numeric question
     if re.search(r"\b(densidade|nucleo|núcleo|quantos)\b", message.lower()):
         if features:
-            return {"reply": f"Nesta imagem foram identificados **{features.get('n_nuclei')} núcleos** (≈{features.get('nuclei_per_mm2')}/mm²), com área média de {features.get('median_nucleus_area')} px² e circularidade média {features.get('median_circularity')}. A fração de estroma é {features.get('stromal_ratio')} e a de espaços claros {features.get('empty_ratio')}.", "suggestions": ["O que cora a hematoxilina?", "Como classificar o tecido?"]}
+            return {"reply": _metrics_line(features), "suggestions": ["O que cora a hematoxilina?", "Como classificar o tecido?"]}
     return {"reply": FALLBACK, "suggestions": ["O que cora a hematoxilina?", "Como classificar tecidos?", "Que critérios indicam malignidade?"]}

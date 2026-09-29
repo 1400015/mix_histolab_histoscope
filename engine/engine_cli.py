@@ -27,6 +27,16 @@ from analyzer import analyze_image  # noqa: E402
 from questions import generate_questions  # noqa: E402
 from chatbot import chat_reply  # noqa: E402
 
+# A2: px/mm aproximados por objetivo, assumindo câmara ~1/2.3" e display 1920px.
+# ESTIMATIVA didática — os valores reais variam com o sensor/ocular.
+MAGNIFICATION_PX_PER_MM = {  # noqa: N806
+    "40x": 130.0,
+    "100x": 320.0,
+    "200x": 640.0,
+    "400x": 1280.0,
+    "1000x": 3200.0,
+}
+
 
 def main() -> None:
     try:
@@ -37,11 +47,24 @@ def main() -> None:
             img = cv2.imread(req["imagePath"])
             if img is None:
                 raise ValueError(f"Não foi possível ler a imagem: {req['imagePath']}")
-            result = analyze_image(img)
-            # overlay_png_b64 mantém-se desde 2026-09-28: a UI mostra a
-            # segmentação de núcleos por cima da lâmina (só os núcleos
-            # individuais são descartados — payload pesado e redundante).
-            result.pop("nuclei", None)
+            # A2: calibração de escala por ampliação (ESTIMATIVA — depende do
+            # tamanho do sensor e da câmara; aproximação didática por objetivo).
+            mag = req.get("magnification") or req.get("pxPerMm")
+            px_per_mm = 500.0
+            if isinstance(mag, (int, float)) and 20 <= float(mag) <= 1000:
+                px_per_mm = float(mag)  # px/mm explícito
+            elif isinstance(mag, str) and mag.lower() in MAGNIFICATION_PX_PER_MM:
+                px_per_mm = MAGNIFICATION_PX_PER_MM[mag.lower()]
+            result = analyze_image(img, px_per_mm=px_per_mm)
+            result["scale_estimate"] = {
+                "px_per_mm": px_per_mm,
+                "source": "magnification" if isinstance(mag, str) else ("explicit" if mag else "default"),
+                "note": "estimativa aproximada; não substitui calibração com micrómetro de lâmina",
+            }
+            # B5: os núcleos individuais (até 800, coordenadas + métricas)
+            # passam a viajar no payload — a UI usa-os para o overlay
+            # interativo (clicar num núcleo mostra as suas métricas).
+            result["nuclei"] = result.get("nuclei", [])[:800]
             json.dump({"ok": True, "analysis": result}, sys.stdout, ensure_ascii=False)
 
         elif action == "questions":

@@ -1,0 +1,17 @@
+# HistoScope-AI — docker compose (C2).
+# Uso: docker compose up --build
+# A porta fica publicada apenas no anfitrião local (127.0.0.1), nunca exposta
+# publicamente. Para permitir a chave Gemini, usa a variável no .env.
+
+services:
+  histoscope:
+    build: .
+    container_name: histoscope-ai
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      # GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    restart: unless-stopped

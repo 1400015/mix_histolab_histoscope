@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AcademicQuizQuestion, QuizAttempt } from '../types/histology';
+import { recordSRSAnswer, prioritizeQuestions, questionKey } from '../utils/spacedRepetition';
 import {
   X,
   Sparkles,
@@ -53,6 +54,10 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [fillBlankInput, setFillBlankInput] = useState<string>('');
+  // B6: perguntas dissertativas — resposta do aluno e autoavaliação.
+  const [openInput, setOpenInput] = useState<string>('');
+  const [openSelfGrade, setOpenSelfGrade] = useState<boolean | null>(null);
+  const [showModelAnswer, setShowModelAnswer] = useState<boolean>(false);
   const [showOptionsHint, setShowOptionsHint] = useState<boolean>(false);
   const [isAnswered, setIsAnswered] = useState<boolean>(false);
   const [score, setScore] = useState<number>(0);
@@ -77,7 +82,8 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
   };
 
   React.useEffect(() => {
-    setQuestions(initialQuestions);
+    // B4: repetição espaçada — perguntas falhadas/vencidas primeiro.
+    setQuestions(prioritizeQuestions(initialQuestions));
     resetQuiz();
   }, [initialQuestions]);
 
@@ -109,6 +115,8 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
       ...prev,
       { questionIndex: currentIndex, selected: index, isCorrect },
     ]);
+    // B4: repetição espaçada — a pergunta falhada volta nas sessões seguintes.
+    try { recordSRSAnswer(questionKey(currentQ), isCorrect); } catch { /* noop */ }
   };
 
   const handleCheckFillBlank = () => {
@@ -135,13 +143,36 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
       ...prev,
       { questionIndex: currentIndex, userInput: fillBlankInput.trim(), isCorrect },
     ]);
+    // B4: repetição espaçada.
+    try { recordSRSAnswer(questionKey(currentQ), isCorrect); } catch { /* noop */ }
   };
 
+  // B6: o aluno lê a resposta modelo e autoavalia-se — a nota entra no
+  // histórico tal como as outras perguntas.
+  const handleOpenSelfGrade = (correct: boolean) => {
+    if (isAnswered) return;
+    setOpenSelfGrade(correct);
+    setIsAnswered(true);
+    if (correct) setScore((s) => s + 1);
+    setUserAnswers((prev) => [
+      ...prev,
+      { questionIndex: currentIndex, userInput: openInput.trim(), isCorrect: correct },
+    ]);
+    // B4: repetição espaçada.
+    try { recordSRSAnswer(questionKey(currentQ), correct); } catch { /* noop */ }
+  };
+  const handleRevealModelAnswer = () => {
+    if (isAnswered) return;
+    setShowModelAnswer(true);
+  };
   const handleNext = () => {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((i) => i + 1);
       setSelectedOption(null);
       setFillBlankInput('');
+      setOpenInput('');
+      setOpenSelfGrade(null);
+      setShowModelAnswer(false);
       setShowOptionsHint(false);
       setIsAnswered(false);
     } else {
@@ -426,8 +457,69 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
                 {currentQ.question}
               </h3>
 
-              {/* MODE 1: Fill in the blank */}
-              {isFillBlank ? (
+              {/* B6 — MODE 0: Pergunta dissertativa com autoavaliação */}
+              {currentQ.questionType === 'open' ? (
+                <div className="space-y-3">
+                  <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-3">
+                    <label className="block text-xs font-medium text-slate-300">
+                      Escreve a tua resposta dissertativa (não é corrigida automaticamente):
+                    </label>
+                    <textarea
+                      rows={4}
+                      disabled={isAnswered}
+                      placeholder="Escreve a tua resposta aqui..."
+                      value={openInput}
+                      onChange={(e) => setOpenInput(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-60"
+                    />
+                    {!isAnswered ? (
+                      <button
+                        onClick={handleRevealModelAnswer}
+                        disabled={!openInput.trim() && !showModelAnswer}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition-colors disabled:opacity-40"
+                      >
+                        {showModelAnswer ? 'Compara com a resposta modelo abaixo' : 'Ver resposta modelo e autoavaliar'}
+                      </button>
+                    ) : showModelAnswer ? (
+                      <div className="space-y-2">
+                        <div className="p-3 bg-indigo-950/40 border border-indigo-800/50 rounded-lg text-xs text-slate-200 space-y-1">
+                          <span className="text-indigo-300 font-semibold">Resposta modelo:</span>
+                          <p className="leading-relaxed">{currentQ.modelAnswer}</p>
+                        </div>
+                        <p className="text-[11px] text-slate-400">A tua resposta autoavaliada como:</p>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleOpenSelfGrade(true)}
+                            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                              openSelfGrade === true
+                                ? 'bg-emerald-600 border-emerald-500 text-white'
+                                : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-emerald-950/40 hover:border-emerald-600'
+                            }`}
+                          >
+                            ✓ Acertei
+                          </button>
+                          <button
+                            onClick={() => handleOpenSelfGrade(false)}
+                            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                              openSelfGrade === false
+                                ? 'bg-rose-600 border-rose-500 text-white'
+                                : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-rose-950/40 hover:border-rose-600'
+                            }`}
+                          >
+                            ✗ Errei
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                  {isAnswered && (
+                    <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-300">
+                      <span className="text-indigo-300 font-semibold">Explicação: </span>
+                      {currentQ.explanation}
+                    </div>
+                  )}
+                </div>
+              ) : isFillBlank ? (
                 <div className="space-y-3">
                   <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl space-y-3">
                     <label className="block text-xs font-medium text-slate-300">
