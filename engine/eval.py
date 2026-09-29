@@ -90,8 +90,12 @@ def main() -> None:
         print(f"\nTotal na galeria: {ct}/{tt} ({(ct / tt * 100):.0f}%) — n pequeno, ver ressalva abaixo")
 
     # Subtotal que exclui os rótulos por confirmar: é o único que se pode citar
-    # sem ressalvas, e mesmo assim sem valor de generalização.
-    cv_, tv, _ = run(verified, "Só rótulos verificados")
+    # sem ressalvas, e mesmo assim sem valor de generalização. Se todos os
+    # rótulos já são verificados, o bloco seria redundante com o total.
+    if len(verified) < tt:
+        cv_, tv, _ = run(verified, "Só rótulos verificados")
+    else:
+        cv_, tv = ct, tt
 
     print()
     print("Ressalvas: (1) amostra minúscula — cada imagem vale ~7 pontos percentuais;")

@@ -221,3 +221,14 @@ Correções decorrentes de uma auditoria externa ao `4bed779`, todas aplicadas e
 6. **Peso/performance** — `loading="lazy"` + `decoding="async"` em todas as miniaturas; `nervous_ganglion` (5,8 MB), `adipose_tissue` (3,7 MB) e `liver` (3,2 MB) substituídos por thumbnails 960px (~30 MB → ~17 MB na galeria total). SHA1 dos originais do Commons registado em `commons_sha1` antes do downscale.
 
 Ressalvas pedagógicas reconhecidas mas **não alteradas** (decisão de conteúdo pendente): `nervous_ganglion` é um feixe nervoso (título diz «gânglio»); `liver` é metástase mamária usada como liver no split de treino; `connective_loose` é tecido de granulação; `adipose_tissue` inclui endométrio; `colon_adenocarcinoma` é subtipo mucinoso; `transitional_epithelium` (bexiga) falha no motor por não existir classe «bexiga».
+
+## Segunda revisão independente — correções aplicadas (2/2)
+
+6. **Quiz offline partido para rim/pulmão/cartilagem** — `questions.py` nunca tinha sido atualizado com as 3 classes novas do `analyzer.py` (cartilage, kidney, lung): a chave inglesa aparecia como resposta correta entre opções portuguesas, e `explanation`/`answer` ficavam vazios. Adicionadas as 3 entradas a `TISSUE_PT` e `STRUCTURE_GLOSSARY`; guardas adicionados: `generate_questions` agora lança `ValueError` explícito se o tecido não tiver entrada pedagógica (em vez de gerar perguntas silenciosamente erradas), e a resposta dissertativa tem fallback não-vazio. Validado com as lâminas reais: lung → «respiratório (pulmão)», kidney → «renal (rim)», com explicação e resposta-modelo preenchidas.
+7. **Reabrir análise guardada mostrava ecrã vazio** — `onSelectStoredAnalysis` limpava a imagem sem ir buscá-la ao IndexedDB, apesar de a miniatura estar guardada. Agora restaura via `getThumbnails([entry.id])`. (O overlay segmentado não é persistido — continuará ausente; a imagem e a análise restauram.)
+8. **`ProgressDashboardModal`** — `getProgress()` corrido a cada render (JSON.parse do localStorage); agora com `useMemo`.
+9. **Dockerfile** — linha morta `COPY engine/gallery_meta.json /app/gallery_meta.json` removida (o servidor lê `/app/engine/gallery_meta.json`, já copiado pelo `COPY engine /app/engine`).
+10. **`eval.py`** — bloco «Só rótulos verificados» agora só corre quando há rótulos não verificados (era redundante com 15/15 verificadas).
+11. **`vite.config.ts`** — `__dirname` → `import.meta.dirname` (aviso Vite 8).
+
+**Alegação não confirmada:** `numpy==2.5.3` resolve e instala normalmente a partir do PyPI neste ambiente (`pip index versions numpy` lista 2.5.3 como latest). O ponto 1 da revisão não se reproduziu e não foi alterado. **Nota:** os 45 testes pytest passam localmente (45/45), mas o job CI do motor nunca validou automaticamente nada antes desta sessão.

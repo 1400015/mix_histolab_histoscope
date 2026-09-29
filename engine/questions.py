@@ -15,6 +15,9 @@ TISSUE_PT = {
     "nervous": ("nervoso", "Baixa densidade nuclear com neuropilo claro e núcleos pequenos arredondados indica tecido nervoso — neurónios e gliócitos."),
     "adipose": ("adiposo", "Grandes espaços claros correspondendo a vacúolos lipídicos únicos indicam tecido adiposo — adipócitos especializados em armazenamento de energia."),
     "liver": ("hepático (fígado)", "Núcleos monótonos dispostos em cordas com estroma mínimo indicam parênquima hepático — hepatócitos em lâminas de 1–2 células."),
+    "cartilage": ("cartilaginoso", "Matriz extracelular avascular homogénea e basofílica com condrócitos em lacunas, isolados ou em grupos isógenos, indicam tecido cartilagíneo — matriz rica em glicosaminoglicanos."),
+    "kidney": ("renal (rim)", "Parênquima epitelial altamente organizado com túbulos e glomérulos densamente celular e estroma escasso indica córtex renal — néfrones com cápsula de Bowman e túbulo contornado."),
+    "lung": ("respiratório (pulmão)", "Estruturas epiteliais de paredes finas com espaços aéreos claros abundantes e septos interalveolares delgados indicam parênquima pulmonar — alvéolos com pneumócitos e capilares."),
 }
 
 STRUCTURE_GLOSSARY = {
@@ -24,6 +27,9 @@ STRUCTURE_GLOSSARY = {
     "nervous": ["corpo celular (pericário)", "dendrites", "neurofibrilhas", "células satélite"],
     "adipose": ["vacúolo lipídico único", "núcleo periférico achatado", "septo conjuntivo"],
     "liver": ["sinusoides", "tríada portal", "space of Disse", "veia central"],
+    "cartilage": ["condrócitos em lacunas", "grupos isógenos", "matriz territorial basofílica", "pericôndrio"],
+    "kidney": ["glomérulo", "cápsula de Bowman", "túbulo contornado proximal", "túbulo coletor"],
+    "lung": ["alvéolos", "septos interalveolares", "pneumócitos tipo I", "macrófagos alveolares"],
 }
 
 
@@ -38,7 +44,11 @@ def generate_questions(analysis: dict[str, Any], n: int = 6, difficulty: str = "
         raise ValueError(
             "análise indeterminada — sem tecido classificável para gerar perguntas"
         )
-    t_pt, t_desc = TISSUE_PT.get(tissue, (tissue, ""))
+    if tissue not in TISSUE_PT:
+        raise ValueError(
+            f"tecido '{tissue}' sem entrada pedagógica em TISSUE_PT — perguntas para este tecido não estão definidas"
+        )
+    t_pt, t_desc = TISSUE_PT[tissue]
     density = f["nuclei_per_mm2"]
     n_nuc = f["n_nuclei"]
     circ = f["median_circularity"]
@@ -68,7 +78,7 @@ def generate_questions(analysis: dict[str, Any], n: int = 6, difficulty: str = "
         "type": "open",
         "difficulty": "medium",
         "question": f"Justifique a classificação como tecido {t_pt}, indicando pelo menos duas características morfológicas observáveis na imagem que a sustentam.",
-        "answer": t_desc,
+        "answer": t_desc or f"Características morfológicas típicas do tecido {t_pt} observáveis na preparação.",
         "explanation": "Critérios esperados: " + "; ".join(TISSUE_PT[tissue][1].split("—")[-1].strip(" .").split(", ")[:3]) if tissue in TISSUE_PT else "Comparar densidade nuclear, cromatina e matriz extracelular com atlas.",
         "topic": "raciocínio morfológico",
     })

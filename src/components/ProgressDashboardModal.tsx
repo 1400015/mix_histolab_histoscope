@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   X,
   TrendingUp,
@@ -61,7 +61,7 @@ export const ProgressDashboardModal: React.FC<ProgressDashboardModalProps> = ({
     };
   };
 
-  const progress = getProgress();
+  const progress = useMemo(getProgress, []);
 
   const handleClearHistory = () => {
     if (window.confirm('Tem a certeza de que deseja reiniciar todo o histórico de avaliação?')) {

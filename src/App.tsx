@@ -25,7 +25,7 @@ import { AnnotationSystem } from './components/AnnotationSystem';
 import { SlideComparisonModal } from './components/SlideComparisonModal';
 import { buildAnalysisReport, downloadReport, printReport } from './utils/report';
 import { saveAnalysis, makeThumbnail, type StoredAnalysis } from './utils/analysisHistory';
-import { putThumbnail } from './utils/thumbnailStore';
+import { putThumbnail, getThumbnails } from './utils/thumbnailStore';
 import { loadAnnotations, saveAnnotations } from './utils/annotations';
 import { AcademicQuizModal } from './components/AcademicQuizModal';
 import { ReferenceAtlasDrawer } from './components/ReferenceAtlasDrawer';
@@ -430,7 +430,9 @@ export default function App() {
           setCurrentLocalAnalysis(entry.localFeatures ? { features: entry.localFeatures } : null);
           setSlideDescription(entry.analysis.tissueClassification.generalDescription);
           setSlideSvgContent(undefined);
-          setSlideImageSrc(undefined);
+          void getThumbnails([entry.id]).then((t) => {
+            setSlideImageSrc(t[entry.id] ?? undefined);
+          });
           setUserAnnotations([]);
           setSelectedConstituent(null);
           setSelectedAnnotationId(null);

@@ -33,7 +33,6 @@ COPY --from=jsbuild /build/dist/server.js /app/server.js
 COPY --from=deps /deps/node_modules /app/node_modules
 # Assets do motor: galeria, metadados e código Python (esbuild não os embute).
 COPY engine /app/engine
-COPY engine/gallery_meta.json /app/gallery_meta.json
 
 ENV NODE_ENV=production
 ENV PORT=3000
