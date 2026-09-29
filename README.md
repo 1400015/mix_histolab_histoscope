@@ -88,7 +88,7 @@ npm run dev            # http://localhost:3000
 
 Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E (Ruifrok & Johnston) → limiar global de Otsu + morfologia → **watershed com marcadores sobre a transformada de distância** (separa núcleos encostados) → morfometria (área, circularidade, elongação) → features globais (densidade nuclear/mm², razão de estroma, espaços claros) → classificação por regras com confiança e evidência. As lâminas restantes devolvem «indeterminado» em vez de falsos positivos (as alegações anteriores de 92% não eram verificáveis — nenhum script de avaliação existia).
 
-**Números de classificação (última corrida registada: treino 9/12, validação 2/3, total 11/15)** — reprodutíveis com `python engine/eval.py`, que agora imprime o `n` de cada split, quantos pontos percentuais vale cada imagem (~7, com 15 imagens), o subtotal **só com as 5 lâminas de proveniência verificada** e o aviso de que o split de treino é onde as regras foram afinadas. Nenhum destes números é uma métrica de generalização: a amostra é minúscula.
+**Números de classificação (última corrida registada: treino 9/12, validação 2/3, total 11/15)** — reprodutíveis com `python engine/eval.py`, que agora imprime o `n` de cada split, quantos pontos percentuais vale cada imagem (~7, com 15 imagens), o subtotal por proveniência (agora **15/15 verificadas** no Commons: autor + licença + SHA1, ver `engine/gallery_meta.json`) e o aviso de que o split de treino é onde as regras foram afinadas. Nenhum destes números é uma métrica de generalização: a amostra é minúscula.
 
 ## Galeria de referência
 

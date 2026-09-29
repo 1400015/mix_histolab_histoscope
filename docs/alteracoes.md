@@ -166,3 +166,23 @@ chat local-tutor ✓.
 - **C4 — i18n pt/en**: `src/i18n.ts` com dicionário e deteção/uso guardado em localStorage; toggle PT/EN no cabeçalho. Cobertura inicial: navegação principal (conteúdo pedagógico permanece pt).
 
 **Verificação.** `tsc --noEmit` limpo; `npx vitest run` 17/17; `pytest -q engine/` 18/18; `python engine/eval.py` treino 9/12 (75%), validação 2/3 (67%), total 11/15 (73%); `npm run build` ok.
+
+---
+
+## 2026-09-29 — Proveniência: as 15 fotos da galeria verificadas no Commons
+
+**Ficheiros:** `engine/gallery_meta.json`, `engine/static/gallery/*.jpg` (10 substituídas), `README.md`.
+
+**Problema.** 10 das 15 fotos estavam `provenance: "unverified"` — os nomes reclamados no campo `commons` não existiam no Wikimedia Commons (ex.: `Skeletal_muscle_(H&E).jpg`), e o campo `source_title` guardava nomes alternativos não confirmados.
+
+**Auditoria.** Consulta à API do Commons (`prop=imageinfo&iiprop=extmetadata`) por ficheiro:
+- 6 imagens fecharam contra o `source_title`: autor + licença confirmados (Patho CC BY-SA 3.0 ×2, Nephron CC BY-SA 3.0, Cheroske CC BY-SA 4.0, Berkshire CC0, NIH domínio público).
+- 4 não existiam sob nenhuma das formas; foram substituídas por equivalentes CC encontrados por pesquisa no Commons: tendão (Berkshire CC0), músculo esquelético e cardíaco (Cheroske CC BY-SA 4.0), córtex cerebral (Espen Presthus CC BY 2.0).
+
+**Integridade.** Os SHA1 das imagens locais não batiam com os ficheiros do Commons (reencodificação em algum ponto da cadeia) — por isso as 10 imagens foram re-descarregadas do próprio Commons (4 delas via thumbnail 960px recomendado pelo Commons após rate-limit 429 em full-size) e substituíram as locais. Proveniência agora verificável por SHA1 contra a fonte.
+
+**Notas de conteúdo:**
+- `liver` é uma **metástase hepática** de carcinoma da mama (a única foto hepática com licença fechada) — nota no meta.
+- `dense_connective` passou de alegado tendão para tendão real (Berkshire); `nervous_ganglion` é um feixe nervoso, não um gânglio — nomes de lâmina mantidos por continuidade da UI.
+
+**Pós-verificação do motor.** Com as imagens novas: treino 9/12 (75%), validação 2/3 (67%), total 11/15 (73%) — igual ao anterior; as regressões (connective_loose, dense_connective → «indeterminado») são falhas honestas do guarda de confiança, não falsos positivos. `pytest` 18/18.
