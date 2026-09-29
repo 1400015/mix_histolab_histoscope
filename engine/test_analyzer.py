@@ -17,7 +17,7 @@ import cv2
 import numpy as np
 import pytest
 
-from analyzer import analyze_image
+from analyzer import analyze_image, _classify
 
 HERE = Path(__file__).parent
 GALLERY = HERE / "static" / "gallery"
@@ -40,6 +40,59 @@ def test_imagem_preta_e_indeterminada() -> None:
     """Bug corrigido 2026-09-28: devolvia 'epithelial' com confiança 0."""
     result = analyze_image(_solid((0, 0, 0)))
     assert result["tissue"] == "indeterminate"
+
+
+def test_matriz_conjuntiva_sem_nucleos() -> None:
+    """Fallback «matriz dominante» (2026-09-29): colagénio denso eosinofílico
+    sem núcleos segmentáveis deixa de ser «indeterminado» — devolve connective
+    com confiança moderada (0.55) e evidência do fallback."""
+    result = analyze_image(_solid((200, 110, 120)))
+    assert result["tissue"] == "connective"
+    assert result["tissue_confidence"] == 0.55
+    assert result["evidence"][0]["type"] == "matriz dominante"
+    assert result["features"]["n_nuclei"] < 15
+
+
+def _features(**over: float) -> dict[str, float]:
+    base = {
+        "n_nuclei": 8, "nuclei_per_mm2": 6.0, "median_nucleus_area": 60.0,
+        "nucleus_area_cv": 0.2, "median_circularity": 0.7, "median_elongation": 1.3,
+        "stromal_ratio": 0.95, "empty_ratio": 0.0, "hematoxylin_mean": 8.0,
+        "eosin_mean": 150.0,
+    }
+    base.update(over)
+    return base
+
+
+def test_classify_fallback_matriz_muscular() -> None:
+    """Fallback «matriz dominante» (2026-09-29): poucas estruturas fortemente
+    alongadas em matriz eosinofílica → muscular com confiança moderada.
+    Teste unitário do _classify: a deconvolução H&E renormaliza os canais pelo
+    p99 da imagem, e fusos escuros num sintético colapsam o eosin_mean do
+    fundo (comprovado por sonda 2026-09-29) — o ramo muscular fica coberto
+    aqui, não por sintético de pipeline."""
+    tissue, conf, evidence = _classify(_features(median_elongation=3.8))
+    assert tissue == "muscular"
+    assert conf == 0.55
+    assert evidence[0]["type"] == "matriz dominante"
+
+
+def test_classify_fallback_matriz_conjuntiva_unitario() -> None:
+    """Mesmo fallback, ramo conjuntivo: estruturas não alongadas e H quase
+    nulo → connective; sem eosina (imagem escura), não dispara."""
+    tissue, conf, evidence = _classify(_features())
+    assert tissue == "connective"
+    assert evidence[0]["type"] == "matriz dominante"
+    tissue2, _, _ = _classify(_features(eosin_mean=50.0))
+    assert tissue2 == "indeterminate"
+
+
+def test_matriz_branca_continua_indeterminada() -> None:
+    """O fallback não dispara em campos sem informação: branco tem E≈0
+    (sonda 2026-09-29) e preto tem H≈254 — nenhum satisfaz as condições de
+    matriz eosinofílica com H quase nulo."""
+    assert analyze_image(_solid((255, 255, 255)))["tissue"] == "indeterminate"
+    assert analyze_image(_solid((0, 0, 0)))["tissue"] == "indeterminate"
 
 
 def test_contrato_do_resultado() -> None:

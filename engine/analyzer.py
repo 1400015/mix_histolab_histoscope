@@ -189,6 +189,35 @@ def _classify(features: dict[str, float]) -> tuple[str, float, list[dict[str, An
 
     # Guarda 1 — campo sem tecido classificável (vazio, preto, não histológico).
     if features["n_nuclei"] < 15:
+        # Fallback «matriz dominante» (2026-09-29): campos dominados pela
+        # MATRIZ têm poucos núcleos segmentáveis, mas continuam legíveis pela
+        # eosinofilia + razão de estroma + forma das poucas estruturas.
+        # Colagénio denso: estroma ~1, eosina alta, H quase nulo, estruturas
+        # não alongadas. Fibras musculares: eosina alta + estruturas
+        # fortemente alongadas. Confiança deliberadamente baixa (0.55) — é uma
+        # leitura de matriz, não morfometria nuclear; imagens brancas (H alto)
+        # e pretas (eosina nula) continuam a cair no indeterminado.
+        if stroma > 0.6 and eosin > 100:
+            if elong > 3.0:
+                return "muscular", 0.55, [{
+                    "type": "matriz dominante",
+                    "confidence": 0.55,
+                    "criteria": [
+                        f"matriz eosinofílica dominante (E={eosin:.0f}, estroma={stroma:.2f}) "
+                        f"com estruturas alongadas (elongação={elong:.1f}) e núcleos escassos "
+                        f"({features['n_nuclei']}) — fibras musculares em corte"
+                    ],
+                }]
+            if hema < 20:
+                return "connective", 0.55, [{
+                    "type": "matriz dominante",
+                    "confidence": 0.55,
+                    "criteria": [
+                        f"colagénio eosinofílico dominante (E={eosin:.0f}, estroma={stroma:.2f}) "
+                        f"com H quase nulo ({hema:.1f}) e núcleos raros ({features['n_nuclei']}) — "
+                        "tecido conjuntivo denso"
+                    ],
+                }]
         return "indeterminate", 0.0, [{
             "type": "insuficiente",
             "confidence": 0.0,
