@@ -92,7 +92,7 @@ Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E
 
 ## Galeria de referência
 
-15 micrografias H&E. **Proveniência honesta:** 5/15 têm origem verificada no Wikimedia Commons com autor, licença e `source_url` em [`engine/gallery_meta.json`](engine/gallery_meta.json) — epitélio escamoso estratificado e urotélio (Photograper09, CC BY-SA 4.0), cartilagem hialina (NIH Image Gallery, CC0), córtex renal (Uwe Gille, CC BY-SA 2.5) e alvéolos pulmonares (PLoS Med, CC BY 2.0). As outras 10 estão marcadas `provenance: "unverified"` (nomes de ficheiro reclamados que não existem no Commons) — **verificar ou substituir antes de qualquer distribuição pública**: adenocarcinoma do cólon, conjuntivo frouxo e denso, muscular liso/esquelético/cardíaco, gânglio nervoso, córtex cerebral, tecido adiposo e fígado. Na UI vêm com crachá de aviso, e o `eval.py` separa-as do subtotal verificado.
+15 micrografias. **Proveniência:** 15/15 verificadas no Wikimedia Commons — autor, licença e `source_url` em [`engine/gallery_meta.json`](engine/gallery_meta.json), com verificação byte a byte contra o Commons (ficheiro original ou thumbnail oficial). Reservas de conteúdo documentadas: `liver` é uma metástase hepática de carcinoma da mama (NCI, domínio público), não parênquima normal; `nervous_ganglion` é um feixe nervoso. Na UI o crachá «© autor» é um link para a ficha no Commons.
 
 ## Estrutura
 

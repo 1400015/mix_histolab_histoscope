@@ -322,13 +322,16 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
                       <div className="flex items-center gap-2 text-[11px] font-medium mb-0.5">
                         <span className="text-indigo-400">H&E · fotografia real</span>
                         {item.provenance === 'verified' ? (
-                          <span
-                            className="flex items-center gap-1 text-emerald-400"
-                            title={item.author ? `© ${item.author} · ${item.license}` : undefined}
+                          <a
+                            href={item.source_url || undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 underline decoration-dotted underline-offset-2"
+                            title={item.author ? `© ${item.author} · ${item.license} — abrir ficha no Wikimedia Commons` : 'Abrir ficha no Wikimedia Commons'}
                           >
                             <ShieldCheck className="w-3 h-3" />
                             {item.author ? `© ${item.author}` : 'origem verificada'}
-                          </span>
+                          </a>
                         ) : (
                           <span className="flex items-center gap-1 text-amber-400" title="Origem não confirmada no Wikimedia Commons">
                             <ShieldAlert className="w-3 h-3" />

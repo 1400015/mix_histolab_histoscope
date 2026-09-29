@@ -21,8 +21,9 @@
     "source_title": "A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
     "author": "Photograper09",
     "license": "CC BY-SA 4.0",
-    "source_url": "",
-    "provenance": "verified"
+    "source_url": "https://commons.wikimedia.org/wiki/File:A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
+    "provenance": "verified",
+    "provenance_note": "Imagem anterior (960x665) não batia com nenhum derivado do ficheiro declarado — substituída por thumbnail 960px do original do Commons (verificação byte a byte)."
   },
   {
     "key": "transitional_epithelium",
@@ -34,8 +35,9 @@
     "source_title": "Trasversal histologic section of human esophagus.jpg",
     "author": "Photograper09",
     "license": "CC BY-SA 4.0",
-    "source_url": "",
-    "provenance": "verified"
+    "source_url": "https://commons.wikimedia.org/wiki/File:A_high-magnification_microscope_image_of_the_urinary_bladder_wall,_clearly_showing_the_thick,_multi-layered_transitional_epithelium_with_its_characteristic_dome-shaped_surface_cells,_all_resting_on_top_of_dense_layers_of_smooth_muscle.jpg",
+    "provenance": "verified",
+    "provenance_note": "A imagem anterior era na verdade do esófago (Trasversal histologic section of human esophagus.jpg, Lorenzo Apolloni, CC BY 4.0) — o crachá anterior atribuía-a erradamente a Photograper09. Substituída por thumbnail 960px do ficheiro da bexiga declarado."
   },
   {
     "key": "connective_loose",
@@ -145,10 +147,10 @@
     "commons": "Breast cancer metastasis to liver (1).jpg",
     "file": "gallery/liver.jpg",
     "provenance": "verified",
-    "author": "Unknown photographer (NIH)",
+    "author": "Unknown photographer (NCI)",
     "license": "Public domain",
     "source_url": "https://commons.wikimedia.org/wiki/File:Breast_cancer_metastasis_to_liver_(1).jpg",
-    "provenance_note": "Metástase hepática de carcinoma da mama — não é parênquima hepático normal; a classificação \"liver\" passa a referir-se à lâmina com esta ressalva."
+    "provenance_note": "Metástase hepática de carcinoma da mama — não é parênquima hepático normal; a classificação \"liver\" refere-se à lâmina com esta ressalva. Ficha: domínio público (National Cancer Institute)."
   },
   {
     "key": "cartilage_hyaline",
@@ -159,10 +161,11 @@
     "commons": "Connective_Tissue_Hyaline_Cartilage_(26989336187).jpg",
     "file": "gallery/cartilage_hyaline.jpg",
     "source_title": "Connective Tissue Hyaline Cartilage (26989336187).jpg",
-    "author": "NIH Image Gallery (Flickr)",
-    "license": "CC0 (Public Domain)",
+    "author": "Berkshire Community College Bioscience Image Library",
+    "license": "CC0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Connective_Tissue_Hyaline_Cartilage_(26989336187).jpg",
-    "provenance": "verified"
+    "provenance": "verified",
+    "provenance_note": "Autor corrigido: a ficha do Commons atribui a Berkshire Community College Bioscience Image Library (CC0), não à NIH Image Gallery. Imagem substituída por thumbnail 960px do original."
   },
   {
     "key": "kidney_cortex",
@@ -174,9 +177,10 @@
     "file": "gallery/kidney_cortex.jpg",
     "source_title": "Histology-kidney.jpg",
     "author": "Uwe Gille",
-    "license": "CC BY-SA 2.5",
+    "license": "CC BY-SA 3.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Histology-kidney.jpg",
-    "provenance": "verified"
+    "provenance": "verified",
+    "provenance_note": "Licença corrigida: a ficha do Commons (Uwe Gille, 2006) declara CC BY-SA 3.0, não 2.5."
   },
   {
     "key": "lung_alveoli",
@@ -187,9 +191,10 @@
     "commons": "Emphysema_H_and_E.jpg",
     "file": "gallery/lung_alveoli.jpg",
     "source_title": "Emphysema H and E.jpg",
-    "author": "PLoS Med (T Cells Cause Lung Damage in Emphysema)",
+    "author": "PLoS Medicine (T Cells Cause Lung Damage in Emphysema)",
     "license": "CC BY 2.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Emphysema_H_and_E.jpg",
-    "provenance": "verified"
+    "provenance": "verified",
+    "provenance_note": "Ficha do Commons sem Artist/Credit preenchidos; atribuição plausível via descrição (PLoS Medicine, CC BY 2.0) mas não verificável na ficha. Original byte a byte."
   }
 ]

@@ -186,3 +186,25 @@ chat local-tutor ✓.
 - `dense_connective` passou de alegado tendão para tendão real (Berkshire); `nervous_ganglion` é um feixe nervoso, não um gânglio — nomes de lâmina mantidos por continuidade da UI.
 
 **Pós-verificação do motor.** Com as imagens novas: treino 9/12 (75%), validação 2/3 (67%), total 11/15 (73%) — igual ao anterior; as regressões (connective_loose, dense_connective → «indeterminado») são falhas honestas do guarda de confiança, não falsos positivos. `pytest` 18/18.
+
+---
+
+## 2026-09-29 — Re-auditoria por hash: 15/15 com prova byte a byte
+
+**Ficheiros:** `engine/gallery_meta.json`, `engine/static/gallery/{stratified_squamous,transitional_epithelium,cartilage_hyaline}.jpg` (substituídas), `src/components/ReferenceAtlasDrawer.tsx`, `README.md`.
+
+**Contexto.** Auditoria externa por hash revelou que a ronda anterior deixou 3 imagens sem prova byte a byte e 2 atribuições erradas:
+
+- `transitional_epithelium` — os bytes eram do **esófago** (*Trasversal histologic section of human esophagus.jpg*, Lorenzo Apolloni, CC BY 4.0), mas o JSON declarava a bexiga (Photograper09) — crachá errado na UI. Substituída por thumbnail 960px do ficheiro da bexiga declarado (verificação byte a byte).
+- `stratified_squamous` — 960x665 sem correspondência com qualquer derivado do ficheiro declarado; marcado `verified` sem prova. Substituída por thumbnail 960px do original (Photograper09, CC BY-SA 4.0).
+- `cartilage_hyaline` — autor errado (JSON dizia NIH Image Gallery; a ficha é **Berkshire Community College Bioscience Image Library**, CC0). Substituída por thumbnail 960px.
+- `kidney_cortex` — licença corrigida para CC BY-SA 3.0 (ficha: Uwe Gille, 2006).
+- `lung_alveoli` — ficha do Commons sem Artist/Credit; atribuição PLoS Medicine (CC BY 2.0) mantida como plausível via descrição, com nota de não verificável na ficha. Imagem é original byte a byte.
+
+**Estado final:** 15/15 com prova byte a byte contra o Commons — 6 ficheiros originais (adipose, colon, connective_loose, liver, kidney, lung, nervous_ganglion, smooth_muscle), 9 thumbnails oficiais 960px idênticos. Todos com `author`, `license` e `source_url` preenchidos.
+
+**UI.** O crachá «© autor» é agora um link (`<a>`) para a ficha no Wikimedia Commons (`source_url`), com `rel="noopener noreferrer"` — o campo existia no tipo mas nunca era renderizado.
+
+**README.** Contradição resolvida (a secção da galeria ainda descrevia o estado 5/15—10 unverified); agora descreve o estado real 15/15 com reservas de conteúdo.
+
+**Pos-verificação do motor (imagens autênticas).** Treino 8/12 (67%), validação 2/3 (67%), só verificados 10/15 (67%) — o `transitional_epithelium` passou de acerto para `connective` (0.50): a imagem correta da bexiga tem espessa muscular sob o urotélio e o motor sem classe «bladder» classifica-a como conjuntivo; falha honesta, não falso positivo fabricado. `pytest` 18/18; vitest 33/33; `tsc` limpo.
