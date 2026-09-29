@@ -45,7 +45,7 @@ def test_imagem_preta_e_indeterminada() -> None:
 def test_contrato_do_resultado() -> None:
     result = analyze_image(_solid((120, 200, 230)))  # tons rosados (eosina)
     assert set(result) == {
-        "features", "tissue", "tissue_confidence", "evidence", "nuclei", "overlay_png_b64",
+        "features", "tissue", "tissue_confidence", "evidence", "nuclei", "overlay_jpg_b64",
     }
     assert isinstance(result["features"], dict)
     assert 0.0 <= result["tissue_confidence"] <= 1.0
