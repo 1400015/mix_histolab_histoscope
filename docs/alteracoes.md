@@ -35,7 +35,7 @@ Implementa os pontos que na vaga anterior ficaram explicitamente "fora do lote".
 
 ---
 
-## 2026-09-29 — Correcções do review externo (P0–P2 + higiene) (local, sem commit)
+## 2026-09-29 — Correcções do review externo (P0–P2 + higiene) (commit `54feef5`)
 
 **Ficheiros:** `Dockerfile`, `server.ts`, `engine/analyzer.py`, `engine/engine_cli.py`, `engine/chatbot.py`, `engine/engine_bridge.ts`, `engine/README.md`, `src/App.tsx`, `src/components/{AcademicQuizModal,ImageUploaderModal,ReferenceAtlasDrawer,ProgressDashboardModal,SlideComparisonModal}.tsx`, `src/utils/analysisHistory.ts`, `tests/engine_bridge.test.ts`, `package.json`, `.gitignore`, `metadata.json`, `index.html`.
 
@@ -62,7 +62,7 @@ Implementa os pontos que na vaga anterior ficaram explicitamente "fora do lote".
 
 **Verificação.** `npx tsc --noEmit` limpo e `npx vitest run` 17/17 (2 ficheiros). `python -m py_compile` OK em `analyzer.py`/`engine_cli.py`/`chatbot.py`/`questions.py`. **Não** foi possível correr `pytest`/`engine/eval.py` neste ambiente (sem numpy/cv2/pytest instalados neste ambiente), pelo que as alterações ao motor são verificadas só por análise estática e compilação — correr `npm run test:engine` e `python engine/eval.py` num ambiente com `engine/requirements.txt`.
 
-**Fora do lote (decisão consciente):** rate-limit/auth por IP nos endpoints que gastam quota Gemini, limite de body (40 MB) mais apertado, `IndexedDB` para thumbnails, dois escritores de anotações (`App.handleAddAnnotation` + `AnnotationSystem.saveAnnotations`), tipos duplicados motor↔UI e substituição das 10 imagens `unverified`.
+**Fora do lote na altura (decisão consciente), implementados na entrada seguinte:** rate-limit/auth por IP nos endpoints que gastam quota Gemini, limite de body (40 MB) mais apertado, `IndexedDB` para thumbnails, dois escritores de anotações (`App.handleAddAnnotation` + `AnnotationSystem.saveAnnotations`), tipos duplicados motor↔UI. **Continua fora:** substituição das 10 imagens `unverified` (precisa de fontes reais — não se inventam) e auth por conta nas rotas.
 
 ---
 
