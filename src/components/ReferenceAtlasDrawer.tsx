@@ -13,6 +13,7 @@ import {
   Camera,
   ShieldCheck,
   ShieldAlert,
+  Sparkles,
   Loader2,
   FolderOpen,
 } from 'lucide-react';
@@ -26,7 +27,7 @@ export interface GalleryItem {
   author?: string;
   license?: string;
   source_url?: string;
-  provenance: 'verified' | 'unverified';
+  provenance: 'verified' | 'unverified' | 'ai-generated';
 }
 
 /** Análise mapeada devolvida por GET /api/gallery/:key/analysis. */
@@ -332,6 +333,11 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
                             <ShieldCheck className="w-3 h-3" />
                             {item.author ? `© ${item.author}` : 'origem verificada'}
                           </a>
+                        ) : item.provenance === 'ai-generated' ? (
+                          <span className="flex items-center gap-1 text-fuchsia-400" title="Imagem sintética gerada por IA para referência pedagógica — não é micrografia real; não usada no treino/validação do motor">
+                            <Sparkles className="w-3 h-3" />
+                            sintética — gerada por IA
+                          </span>
                         ) : (
                           <span className="flex items-center gap-1 text-amber-400" title="Origem não confirmada no Wikimedia Commons">
                             <ShieldAlert className="w-3 h-3" />

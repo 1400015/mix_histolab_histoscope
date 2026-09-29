@@ -39,7 +39,7 @@
 | `POST /api/compare-local` | Comparação offline de duas lâminas (motor local) | idem |
 | `POST /api/compare-slides` | **501** («usa a comparação offline») | Gemini |
 | `POST /api/ask-tutor` | **501** («usa /api/chat») | Gemini |
-| `GET /api/gallery` | 15 micrografias reais (CC) — sempre disponível | idem |
+| `GET /api/gallery` | 42 lâminas: 15 micrografias reais (CC) + 24 lâminas sintéticas Meta AI + 3 esquemas de embriologia — sempre disponível | idem |
 | `GET /api/gallery/:key/analysis` | Análise local da lâmina de referência | idem |
 | `GET /api/status` | Reporta capacidades (`{gemini: bool, engine: {active, queued}}`) | idem |
 
@@ -92,7 +92,7 @@ Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E
 
 ## Galeria de referência
 
-15 micrografias. **Proveniência:** 15/15 verificadas no Wikimedia Commons — autor, licença e `source_url` em [`engine/gallery_meta.json`](engine/gallery_meta.json), com verificação byte a byte contra o Commons (ficheiro original ou thumbnail oficial). Reservas de conteúdo documentadas: `liver` é uma metástase hepática de carcinoma da mama (NCI, domínio público), não parênquima normal; `nervous_ganglion` é um feixe nervoso. Na UI o crachá «© autor» é um link para a ficha no Commons.
+42 lâminas: 15 micrografias + 27 imagens sintéticas (24 lâminas histológicas geradas por Meta AI e 3 esquemas de embriologia em pt-PT). As sintéticas estão marcadas no `gallery_meta.json` com `provenance: "ai-generated"`, `split: "excluded"` (fora do treino/validação do motor) e crachá «imagem sintética» na UI — não substituem micrografias reais. **Proveniência das micrografias:** 15/15 verificadas no Wikimedia Commons — autor, licença e `source_url` em [`engine/gallery_meta.json`](engine/gallery_meta.json), com verificação byte a byte contra o Commons (ficheiro original ou thumbnail oficial). Reservas de conteúdo documentadas: `liver` é uma metástase hepática de carcinoma da mama (NCI, domínio público), não parênquima normal; `nervous_ganglion` é um feixe nervoso. Na UI o crachá «© autor» é um link para a ficha no Commons.
 
 ## Estrutura
 
@@ -105,7 +105,7 @@ Ver [`engine/README.md`](engine/README.md). Pipeline: desconvolução de cor H&E
 │   ├── chatbot.py         #   tutor offline por regras
 │   ├── engine_cli.py      #   interface stdin/stdout JSON
 │   ├── engine_bridge.ts   #   bridge Node ↔ Python
-│   └── static/gallery/    #   15 micrografias CC
+│   └── static/gallery/    #   42 lâminas (15 micrografias CC + 27 sintéticas Meta AI)
 └── src/data/referenceSlides.ts  # atlas SVG sintético (modo diagrama)
 ```
 

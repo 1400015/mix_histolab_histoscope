@@ -76,6 +76,11 @@ def main() -> None:
     train = [m for m in meta if m.get("split", "train") == "train"]
     validation = [m for m in meta if m.get("split") == "validation"]
     verified = [m for m in meta if m.get("provenance") == "verified"]
+    # Lâminas sintéticas (ai-generated) ficam fora de todos os splits: não são
+    # micrografias reais e os rótulos não são classes do motor.
+    excluded = [m for m in meta if m.get("split") == "excluded"]
+    if excluded:
+        print(f"Nota: {len(excluded)} l\u00e2mina(s) sint\u00e9tica(s) (ai-generated) fora da avalia\u00e7\u00e3o.")
 
     c1, t1, u1 = run(train, "Treino")
     c2, t2, u2 = run(validation, "Validação (pós-hoc, ver docstring)")
