@@ -4,6 +4,22 @@ Cada alteração ao código fica registada aqui por data (mais recente primeiro)
 
 ---
 
+## 2026-09-29 — Fallback «matriz dominante» no classificador (commit `b1a991d`)
+
+**Ficheiros:** `engine/analyzer.py`, `engine/test_analyzer.py`.
+
+**Problema.** Campos dominados pela MATRIZ — colagénio denso, feixes musculares em corte — têm poucos núcleos segmentáveis e caíam sempre na Guarda 1 (<15 núcleos → «indeterminado»), mesmo sendo perfeitamente legíveis pela matriz: estroma eosinofílico quase total, H quase nulo, e forma alongada ou não das poucas estruturas. O aluno via «Indeterminado» numa imagem de conjuntivo denso perfeitamente válido.
+
+**Implementação** (`_classify`, dentro da Guarda 1, antes do indeterminado): se `stromal_ratio > 0.6` e `eosin_mean > 100` — `median_elongation > 3.0` → **muscular**; senão `hematoxylin_mean < 20` → **connective**. Confiança fixa **0.55** (deliberadamente baixa: é uma leitura de matriz, não morfometria nuclear) e evidência com `type: "matriz dominante"` e critérios com os números reais. Branco (E≈0 por sonda) e preto (H≈254) não satisfazem as condições e continuam «indeterminado» — as duas guardas originais ficam intactas.
+
+**Nota honesta: o eval não muda (10/15).** Sondado 2026-09-29: `cartilage_hyaline` falha a Guarda 1 mas é pálida demais para o fallback (eosin_mean 19.7, stroma 0.022 — a matriz cartilagínea do Commons quase não tinge de eosina) e mantém-se a limitação conhecida já documentada no `eval.py`; `liver` (metástase classificada epithelial a 1.00) passa pela Guarda 2, não pela 1. O fallback vale ao nível do PRODUTO: uploads reais de conjuntivo denso/músculo deixam de devolver resposta vazia.
+
+**Testes (4 novos, 49 no total).** Pipeline: matriz rosa sólida (200,110,120 — H=0/E=254 por sonda) → connective 0.55 com evidência «matriz dominante»; branco e preto continuam indeterminado. Unitários do `_classify` (dict de features sintético): ramo muscular (elongação 3.8) → muscular 0.55; ramo conjuntivo → connective; sem eosina → indeterminado. **Nota técnica que motivou os unitários:** a deconvolução H&E renormaliza cada canal pelo p99 da PRÓPRIA imagem — fusos escuros num sintético de pipeline colapsam o `eosin_mean` do fundo (254 → 22.9), pelo que o ramo muscular não é testável por sintético de pipeline sem enganar as condições reais.
+
+**Verificação.** `python -m pytest -q engine/test_analyzer.py -k "matriz or indeterminada or contrato"` = 7/7. Suite completa **49/49** (9 min) e `python engine/eval.py` re-corrido: **10/15 sem qualquer mudança** — nenhuma das 42 lâminas da galeria mudou de classificação (o fallback não dispara em nenhuma: só se destina a uploads reais de campos matriz-dominantes), treino 8/12 e validação 2/3 iguais ao anterior.
+
+---
+
 ## 2026-09-29 — Melhorias sugeridas no review, segunda vaga (endurecimento + arquitetura) (commit `01b4bb5`)
 
 **Ficheiros:** `server/guards.ts` (novo), `server/validate.ts` (novo), `server.ts`, `tests/server_routes.test.ts` (novo), `src/utils/{annotations,apiError,thumbnailStore,dialogFocus}.ts` (novos), `src/types/histology.ts`, `src/App.tsx`, `src/components/{AcademicQuizModal,ImageUploaderModal,ReferenceAtlasDrawer,ProgressDashboardModal,SlideComparisonModal,HistologyTutorModal,AnnotationSystem}.tsx`, `src/utils/analysisHistory.ts`, `engine/eval.py`, `package.json`.
