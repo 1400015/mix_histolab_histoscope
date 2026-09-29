@@ -4,6 +4,37 @@ Cada alteração ao código fica registada aqui por data (mais recente primeiro)
 
 ---
 
+## 2026-09-29 — Melhorias sugeridas no review, segunda vaga (endurecimento + arquitetura) (commit `01b4bb5`)
+
+**Ficheiros:** `server/guards.ts` (novo), `server/validate.ts` (novo), `server.ts`, `tests/server_routes.test.ts` (novo), `src/utils/{annotations,apiError,thumbnailStore,dialogFocus}.ts` (novos), `src/types/histology.ts`, `src/App.tsx`, `src/components/{AcademicQuizModal,ImageUploaderModal,ReferenceAtlasDrawer,ProgressDashboardModal,SlideComparisonModal,HistologyTutorModal,AnnotationSystem}.tsx`, `src/utils/analysisHistory.ts`, `engine/eval.py`, `package.json`.
+
+Implementa os pontos que na vaga anterior ficaram explicitamente "fora do lote".
+
+**Segurança e custo:**
+1. **Rate limit por IP** (`server/guards.ts`) — janela fixa em memória. Dois limiters: `apiRateLimit` em `/api` (60/min, `RATE_LIMIT_MAX`) e `aiRateLimit` nos 5 endpoints que gastam quota Gemini (12/min, `AI_RATE_LIMIT_MAX`), com **429 + `Retry-After`** e mensagem legível. Desligável com `*_RATE_LIMIT_MAX=0`. `TRUST_PROXY=1` faz usar o IP real atrás de reverse proxy (desligado por defeito — sem proxy, `X-Forwarded-For` é falsificável).
+2. **Corpo JSON de 40 MB → 20 MB** e handler de erro do parser: 413 com mensagem própria (imagem grande) e 400 em JSON malformado, em vez de uma página de stack trace.
+3. **Validação de payloads** (`server/validate.ts`) — `validateIncomingImage` aceita data URL, base64 puro, `gallery:<key>` e `/gallery-images/<key>.jpg`; verifica charset base64 e teto de 12 MB descodificados (antes, uma string qualquer ia para o Gemini e para um ficheiro temporário escrito pelo motor). Chat valida `messages` (teto de 8000 car./turno, últimas 40), quiz valida o `analysis` local (exige `tissue`) e o `count` fica limitado a 1–20 (ia cru para o prompt).
+4. **Cabeçalhos de segurança** — `nosniff`, `DENY` de framing, `Referrer-Policy`, `COOP`/`CORP`, `Permissions-Policy` e **CSP** em produção (a CSP fica fora em dev porque o Vite injeta scripts inline; desligável com `DISABLE_CSP=1`).
+5. **Teto de concorrência do motor** (`runEngineTask`) — antes cada pedido fazia spawn de um processo Python sem limite (10 pedidos = 10 pipelines OpenCV). Agora `ENGINE_MAX_CONCURRENCY` (2) com fila de `ENGINE_MAX_QUEUE` (8) e **503 + `retryAfterSeconds`** quando a fila enche; `/api/status` expõe a carga da fila.
+6. **Bug corrigido pelo caminho:** o quiz e o tutor enviavam `slideImageSrc` (caminho `/gallery-images/<key>.jpg`) no campo de imagem, que o Gemini recebia como base64 inválido. Agora o servidor resolve a referência para base64 a partir do ficheiro da galeria (404 se a key não existir).
+
+**Arquitetura e manutenção:**
+7. **Um único dono das anotações** (`src/utils/annotations.ts`) — o `App` carrega/persiste e o `AnnotationSystem` só reporta alterações. Antes os dois gravavam `histoscope_annotations_<id>` e o `App.handleAddAnnotation` escrevia `[...snapshot, nova]` a partir do render anterior: duas caixas seguidas e a segunda gravação apagava a primeira. As anotações da lâmina ativa passam a carregar-se na mudança de lâmina (o contador do painel já não aparece a 0).
+8. **Tipos do motor como fonte única** — `UiLocalAnalysis` (`src/types/histology.ts`) deriva de `LocalAnalysis` (`engine/engine_bridge.ts`); desapareceram os `Record<string, unknown>` e os casts de `overlay_jpg_b64`/`nuclei`/`features` espalhados por `App.tsx` e três modais. Renomear um campo do motor passa a ser um erro de compilação, não uma caça a strings.
+9. **Miniaturas do histórico em IndexedDB** (`src/utils/thumbnailStore.ts`) — o localStorage ficava com data URLs até estourar a quota de ~5 MB, e o plano B era apagar as miniaturas de todas as entradas. O histórico guarda só metadados, a miniatura vive no IndexedDB (lida ao abrir o drawer, com fallback para entradas antigas) e é removida quando a análise sai do histórico. Sem IndexedDB, degrada em silêncio.
+10. **`server.ts` importável** — só arranca quando é o ponto de entrada (`tsx server.ts` / `node dist/server.js`) e exporta `app`, o que tornou as rotas testáveis sem abrir portas nem carregar o Vite.
+
+**Produto e acessibilidade:**
+11. **Erros da API traduzidos** (`src/utils/apiError.ts`) — os cinco `fetch` passam a mostrar a razão real (413/429/501/503, timeout, e o `error` do servidor) em vez de `HTTP 4xx` ou mensagens genéricas.
+12. **Diálogos com foco gerido** (`src/utils/dialogFocus.ts`) — substitui as cinco cópias do listener de Escape: foca o painel ao abrir, devolve o foco ao botão de origem ao fechar e os cinco modais ganharam `role="dialog"`, `aria-modal` e `aria-label` (o drawer já os tinha). Antes, o Tab seguinte ao abrir percorria o conteúdo por trás do modal.
+13. **`engine/eval.py` com ressalvas explícitas** — imprime o `n` de cada split, quantas imagens com rótulo por confirmar entraram no cálculo, o subtotal **só com as verificadas**, quantos pontos percentuais vale cada imagem (~7, com 15 imagens) e lembra que o split de treino é onde as regras foram afinadas.
+
+**Testes:** `tests/server_routes.test.ts` (16 casos novos, 33 no total) cobre o que não estava testado: validação e 400, 404 da galeria e das referências forjadas (`gallery:../../etc/passwd`), 501 dos endpoints Gemini sem chave, 429 com `Retry-After` e independência das janelas do limitador, cabeçalhos de segurança e `/api/status`. Nenhum caso válido é testado de propósito — os caminhos felizes chamam o motor Python, que não corre no CI Node. Novo script `npm run verify` (tsc + vitest); o workflow de CI já existente passa a incluir estes testes via `npm run test:js`.
+
+**Verificação.** `npx tsc --noEmit` limpo, `npx vitest run` 33/33 (3 ficheiros), `python -m py_compile` OK nos cinco módulos do motor. `pytest`/`engine/eval.py` continuam a não correr neste ambiente (sem numpy/cv2) — as alterações ao `eval.py` foram verificadas por compilação e leitura; a folha de cálculo das percentagens é aritmética simples, mas correr `python engine/eval.py` num ambiente com `engine/requirements.txt` continua a ser o único teste real.
+
+---
+
 ## 2026-09-29 — Correcções do review externo (P0–P2 + higiene) (local, sem commit)
 
 **Ficheiros:** `Dockerfile`, `server.ts`, `engine/analyzer.py`, `engine/engine_cli.py`, `engine/chatbot.py`, `engine/engine_bridge.ts`, `engine/README.md`, `src/App.tsx`, `src/components/{AcademicQuizModal,ImageUploaderModal,ReferenceAtlasDrawer,ProgressDashboardModal,SlideComparisonModal}.tsx`, `src/utils/analysisHistory.ts`, `tests/engine_bridge.test.ts`, `package.json`, `.gitignore`, `metadata.json`, `index.html`.
