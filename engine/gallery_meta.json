@@ -9,7 +9,10 @@
     "provenance": "verified",
     "author": "Patho",
     "license": "CC BY-SA 3.0",
-    "source_url": "https://commons.wikimedia.org/wiki/File:Mucinous_adenocarcinoma_of_the_colon,_HE_1.JPG"
+    "source_url": "https://commons.wikimedia.org/wiki/File:Mucinous_adenocarcinoma_of_the_colon,_HE_1.JPG",
+    "sha1": "ec1c052f48ff9b59d297a8ee24df2f538f3892b1",
+    "match": "original",
+    "commons_sha1": "ec1c052f48ff9b59d297a8ee24df2f538f3892b1"
   },
   {
     "key": "stratified_squamous",
@@ -18,12 +21,14 @@
     "description": "Epitélio pavimentoso estratificado: camadas de células achatadas com núcleos densos na camada basal, justapostas à membrana basal.",
     "commons": "A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
     "file": "gallery/stratified_squamous.jpg",
-    "source_title": "A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
     "author": "Photograper09",
     "license": "CC BY-SA 4.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:A_classic_view_of_non-keratinized_stratified_squamous_epithelium.jpg",
     "provenance": "verified",
-    "provenance_note": "Imagem anterior (960x665) não batia com nenhum derivado do ficheiro declarado — substituída por thumbnail 960px do original do Commons (verificação byte a byte)."
+    "provenance_note": "Imagem anterior (960x665) não batia com nenhum derivado do ficheiro declarado — substituída por thumbnail 960px do original do Commons (verificação byte a byte).",
+    "sha1": "e97dd85f4af283fdd2021a81fe1f316d38e119b6",
+    "match": "original",
+    "commons_sha1": "e97dd85f4af283fdd2021a81fe1f316d38e119b6"
   },
   {
     "key": "transitional_epithelium",
@@ -32,12 +37,14 @@
     "description": "Epitélio de transição da bexiga com células superficiais em cúpula características e múltiplas camadas de células poliédricas.",
     "commons": "A_high-magnification_microscope_image_of_the_urinary_bladder_wall,_clearly_showing_the_thick,_multi-layered_transitional_epithelium_with_its_characteristic_dome-shaped_surface_cells,_all_resting_on_top_of_dense_layers_of_smooth_muscle.jpg",
     "file": "gallery/transitional_epithelium.jpg",
-    "source_title": "Trasversal histologic section of human esophagus.jpg",
     "author": "Photograper09",
     "license": "CC BY-SA 4.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:A_high-magnification_microscope_image_of_the_urinary_bladder_wall,_clearly_showing_the_thick,_multi-layered_transitional_epithelium_with_its_characteristic_dome-shaped_surface_cells,_all_resting_on_top_of_dense_layers_of_smooth_muscle.jpg",
     "provenance": "verified",
-    "provenance_note": "A imagem anterior era na verdade do esófago (Trasversal histologic section of human esophagus.jpg, Lorenzo Apolloni, CC BY 4.0) — o crachá anterior atribuía-a erradamente a Photograper09. Substituída por thumbnail 960px do ficheiro da bexiga declarado."
+    "provenance_note": "A imagem anterior era na verdade do esófago (Trasversal histologic section of human esophagus.jpg, Lorenzo Apolloni, CC BY 4.0) — o crachá anterior atribuía-a erradamente a Photograper09. Substituída por thumbnail 960px do ficheiro da bexiga declarado.",
+    "sha1": "000351de5af770b221ed6712bfa7ea661c1a8520",
+    "match": "original",
+    "commons_sha1": "000351de5af770b221ed6712bfa7ea661c1a8520"
   },
   {
     "key": "connective_loose",
@@ -49,7 +56,10 @@
     "provenance": "verified",
     "author": "Patho",
     "license": "CC BY-SA 3.0",
-    "source_url": "https://commons.wikimedia.org/wiki/File:Granulation_tissue_in_an_infected_wound,_HE_1.JPG"
+    "source_url": "https://commons.wikimedia.org/wiki/File:Granulation_tissue_in_an_infected_wound,_HE_1.JPG",
+    "sha1": "e4528b2da5048cfd7c47d4d1c2505fe092e6dbae",
+    "match": "original",
+    "commons_sha1": "e4528b2da5048cfd7c47d4d1c2505fe092e6dbae"
   },
   {
     "key": "dense_connective",
@@ -62,7 +72,10 @@
     "author": "Berkshire Community College Bioscience Image Library",
     "license": "CC0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Connective_Tissue_Tendon_(41812677652).jpg",
-    "provenance_note": "Substitui \"Dense_regular_connective_tissue_-_tendon.jpg\" (inexistente no Commons); substitui a imagem anterior sem proveniência."
+    "provenance_note": "Substitui \"Dense_regular_connective_tissue_-_tendon.jpg\" (inexistente no Commons); substitui a imagem anterior sem proveniência.",
+    "sha1": "7d8c934fd7160883ef99dd11c6d5662f300d0fe9",
+    "match": "original",
+    "commons_sha1": "7d8c934fd7160883ef99dd11c6d5662f300d0fe9"
   },
   {
     "key": "smooth_muscle",
@@ -74,7 +87,10 @@
     "provenance": "verified",
     "author": "Alexander G. Cheroske",
     "license": "CC BY-SA 4.0",
-    "source_url": "https://commons.wikimedia.org/wiki/File:Smooth_muscle_400x.jpg"
+    "source_url": "https://commons.wikimedia.org/wiki/File:Smooth_muscle_400x.jpg",
+    "sha1": "9c9a2d6ef342e3824fb2551057baba20a8c4c925",
+    "match": "original",
+    "commons_sha1": "9c9a2d6ef342e3824fb2551057baba20a8c4c925"
   },
   {
     "key": "skeletal_muscle",
@@ -87,7 +103,10 @@
     "author": "Alexander G. Cheroske",
     "license": "CC BY-SA 4.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Skeletal_muscle_400x.jpg",
-    "provenance_note": "Substitui \"Skeletal_muscle_(H&E).jpg\" (inexistente no Commons) e a imagem anterior sem proveniência."
+    "provenance_note": "Substitui \"Skeletal_muscle_(H&E).jpg\" (inexistente no Commons) e a imagem anterior sem proveniência.",
+    "sha1": "02216bccacdace8656ff0243393f3e6289542f55",
+    "match": "original",
+    "commons_sha1": "02216bccacdace8656ff0243393f3e6289542f55"
   },
   {
     "key": "cardiac_muscle",
@@ -100,7 +119,10 @@
     "author": "Alexander G. Cheroske",
     "license": "CC BY-SA 4.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Cardiac_muscle_histology_400x.jpg",
-    "provenance_note": "Substitui \"Cardiac_muscle_(H&E).jpg\" (inexistente no Commons) e a imagem anterior sem proveniência."
+    "provenance_note": "Substitui \"Cardiac_muscle_(H&E).jpg\" (inexistente no Commons) e a imagem anterior sem proveniência.",
+    "sha1": "90b58513683f8b5b121c8f8c38013cbcc3da9897",
+    "match": "original",
+    "commons_sha1": "90b58513683f8b5b121c8f8c38013cbcc3da9897"
   },
   {
     "key": "nervous_ganglion",
@@ -112,7 +134,11 @@
     "provenance": "verified",
     "author": "Berkshire Community College Bioscience Image Library",
     "license": "CC0",
-    "source_url": "https://commons.wikimedia.org/wiki/File:Nervous_Tissue_Nerve_Bundle_(40110795540).jpg"
+    "source_url": "https://commons.wikimedia.org/wiki/File:Nervous_Tissue_Nerve_Bundle_(40110795540).jpg",
+    "sha1": "9808854cbd2ea6f68b8bb0d340c18d792fa966dd",
+    "commons_sha1": "e83d2cc638e69e23625f86ed6c0267b4be08f9b1",
+    "match": "thumb",
+    "provenance_note": "Original do Commons (SHA1 e83d2cc638e6…) substituído por thumbnail 960px para reduzir peso; "
   },
   {
     "key": "nervous_cortex",
@@ -125,7 +151,10 @@
     "author": "Espen Presthus",
     "license": "CC BY 2.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Slide_119_-_Cerebrum,_Cerebral_cortex_(gray_matter).jpg",
-    "provenance_note": "Substitui \"Cerebral_cortex_(H&E).jpg\" (inexistente no Commons) e a imagem anterior sem proveniência."
+    "provenance_note": "Substitui \"Cerebral_cortex_(H&E).jpg\" (inexistente no Commons) e a imagem anterior sem proveniência.",
+    "sha1": "a338144343abc2b04dd7fa053a2b1704920a6452",
+    "match": "original",
+    "commons_sha1": "a338144343abc2b04dd7fa053a2b1704920a6452"
   },
   {
     "key": "adipose_tissue",
@@ -137,7 +166,11 @@
     "provenance": "verified",
     "author": "Nephron",
     "license": "CC BY-SA 3.0",
-    "source_url": "https://commons.wikimedia.org/wiki/File:Endometrium_and_adipose_tissue_--_high_mag.jpg"
+    "source_url": "https://commons.wikimedia.org/wiki/File:Endometrium_and_adipose_tissue_--_high_mag.jpg",
+    "sha1": "4ce303426e85b03a6ae044177387880500aacb8c",
+    "commons_sha1": "398d3dfdfe548da60eb90a772526ac9c07ca67b6",
+    "match": "thumb",
+    "provenance_note": "Original do Commons (SHA1 398d3dfdfe54…) substituído por thumbnail 960px para reduzir peso; "
   },
   {
     "key": "liver",
@@ -150,7 +183,10 @@
     "author": "Unknown photographer (NCI)",
     "license": "Public domain",
     "source_url": "https://commons.wikimedia.org/wiki/File:Breast_cancer_metastasis_to_liver_(1).jpg",
-    "provenance_note": "Metástase hepática de carcinoma da mama — não é parênquima hepático normal; a classificação \"liver\" refere-se à lâmina com esta ressalva. Ficha: domínio público (National Cancer Institute)."
+    "provenance_note": "Original do Commons (SHA1 ae8f9cb15db3…) substituído por thumbnail 960px para reduzir peso; Metástase hepática de carcinoma da mama — não é parênquima hepático normal; a classificação \"liver\" refere-se à lâmina com esta ressalva. Ficha: domínio público (National Cancer Institute).",
+    "sha1": "0fe7e91ab7619fbd82f51af05eecce0061adad13",
+    "commons_sha1": "ae8f9cb15db3644fd236d03ad30adfcb2151868b",
+    "match": "thumb"
   },
   {
     "key": "cartilage_hyaline",
@@ -160,12 +196,14 @@
     "description": "Cartilagem hialina humana: condroblastos e condrócitos em lacunas dispersas numa matriz amorfa basófila; pericôndrio em superfície. Nota: coloração H&E pálida — o motor local devolve 'indeterminate' (limitação conhecida para matizes fracamente coradas).",
     "commons": "Connective_Tissue_Hyaline_Cartilage_(26989336187).jpg",
     "file": "gallery/cartilage_hyaline.jpg",
-    "source_title": "Connective Tissue Hyaline Cartilage (26989336187).jpg",
     "author": "Berkshire Community College Bioscience Image Library",
     "license": "CC0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Connective_Tissue_Hyaline_Cartilage_(26989336187).jpg",
     "provenance": "verified",
-    "provenance_note": "Autor corrigido: a ficha do Commons atribui a Berkshire Community College Bioscience Image Library (CC0), não à NIH Image Gallery. Imagem substituída por thumbnail 960px do original."
+    "provenance_note": "Autor corrigido: a ficha do Commons atribui a Berkshire Community College Bioscience Image Library (CC0), não à NIH Image Gallery. Imagem substituída por thumbnail 960px do original.",
+    "sha1": "c6c8b3d502da5f91d4b126d7600d3effa3bb6722",
+    "match": "original",
+    "commons_sha1": "c6c8b3d502da5f91d4b126d7600d3effa3bb6722"
   },
   {
     "key": "kidney_cortex",
@@ -175,12 +213,14 @@
     "description": "Córtex renal com glomérulos (novilho capsular claro) e túbulos contornados justapostos com epitélio cuboide eosinofílico e núcleos basófilos intensos.",
     "commons": "Histology-kidney.jpg",
     "file": "gallery/kidney_cortex.jpg",
-    "source_title": "Histology-kidney.jpg",
     "author": "Uwe Gille",
     "license": "CC BY-SA 3.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Histology-kidney.jpg",
     "provenance": "verified",
-    "provenance_note": "Licença corrigida: a ficha do Commons (Uwe Gille, 2006) declara CC BY-SA 3.0, não 2.5."
+    "provenance_note": "Licença corrigida: a ficha do Commons (Uwe Gille, 2006) declara CC BY-SA 3.0, não 2.5.",
+    "sha1": "218485b31cc06a7558443bc3e7bb102088bf328a",
+    "match": "original",
+    "commons_sha1": "218485b31cc06a7558443bc3e7bb102088bf328a"
   },
   {
     "key": "lung_alveoli",
@@ -190,12 +230,14 @@
     "description": "Parênquima pulmonar com alvéolos de paredes finas e septos interalveolares com pneumócitos e capilares; nota: espécime com enfisema (espaços aéreos dilatados).",
     "commons": "Emphysema_H_and_E.jpg",
     "file": "gallery/lung_alveoli.jpg",
-    "source_title": "Emphysema H and E.jpg",
-    "author": "PLoS Medicine (T Cells Cause Lung Damage in Emphysema)",
+    "author": "",
     "license": "CC BY 2.0",
     "source_url": "https://commons.wikimedia.org/wiki/File:Emphysema_H_and_E.jpg",
     "provenance": "verified",
-    "provenance_note": "Ficha do Commons sem Artist/Credit preenchidos; atribuição plausível via descrição (PLoS Medicine, CC BY 2.0) mas não verificável na ficha. Original byte a byte."
+    "provenance_note": "Atribuição não verificável na ficha do Commons (Artist/Credit vazios); «PLoS Medicine (T Cells Cause Lung Damage in Emphysema)» plausível via descrição. Original byte a byte (SHA1 local = commons).",
+    "sha1": "4d7862eae2c5ac2e6fbfb251f8ac9600ff893029",
+    "match": "original",
+    "commons_sha1": "4d7862eae2c5ac2e6fbfb251f8ac9600ff893029"
   },
   {
     "key": "blood_smear",
@@ -210,7 +252,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "71330802cfb587f6a398d9395370e9cfa40167c7",
+    "match": "original"
   },
   {
     "key": "thyroid",
@@ -225,7 +269,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "16af05696c207daae43bc1779ecc9a6da5d5e410",
+    "match": "original"
   },
   {
     "key": "adrenal",
@@ -240,7 +286,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "18eea26d930be693d80c28b733586c9b7f3c396b",
+    "match": "original"
   },
   {
     "key": "pituitary",
@@ -255,7 +303,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "a7aff0f8ea3c663bebf4585be6fa9eaecffcda7e",
+    "match": "original"
   },
   {
     "key": "pancreatic_islets",
@@ -270,7 +320,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "f65b4c4ea9fc8cf02be2e3985c2de874756c3e1d",
+    "match": "original"
   },
   {
     "key": "aorta",
@@ -285,7 +337,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "9ce6739347ef16e6510598f2bc131b8ecc855636",
+    "match": "original"
   },
   {
     "key": "artery_vein",
@@ -300,7 +354,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "812dc6a37fff61412406e937d6118388417c37ad",
+    "match": "original"
   },
   {
     "key": "esophagus",
@@ -315,7 +371,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "62e8be3eef22dc85a7126a663da42ce808ba5707",
+    "match": "original"
   },
   {
     "key": "stomach_fundus",
@@ -330,7 +388,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "9045fb10e654db15dad9480957518055cddd940d",
+    "match": "original"
   },
   {
     "key": "jejunum",
@@ -345,7 +405,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "7b1fc1ee56bc2ba7574bfaca784ca3783fa21114",
+    "match": "original"
   },
   {
     "key": "colon_normal",
@@ -360,7 +422,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "a129a9d7c178ccf5826ef048580bec2220d53452",
+    "match": "original"
   },
   {
     "key": "liver_normal",
@@ -375,7 +439,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "4fda4459bc97c87c6978e289669aad20ca2c4c9c",
+    "match": "original"
   },
   {
     "key": "parotid_gland",
@@ -390,7 +456,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "4c9301a36e7c112916185da145e2ea7616ad1de6",
+    "match": "original"
   },
   {
     "key": "trachea",
@@ -405,7 +473,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "2319af1781fd7203af57d371ae2e6721b1b344d4",
+    "match": "original"
   },
   {
     "key": "lymph_node",
@@ -420,7 +490,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "8d4111af2bb7a3e64558271ab9486f107d1f6a53",
+    "match": "original"
   },
   {
     "key": "spleen",
@@ -435,7 +507,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "e31e090f5b903b711069f8e1f42a3df648cb882d",
+    "match": "original"
   },
   {
     "key": "thymus",
@@ -450,7 +524,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "2935662304c8c61149980cc153396cbd7648bf4e",
+    "match": "original"
   },
   {
     "key": "testis",
@@ -465,7 +541,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "71be34d24012744f3a859215b63412622dd5c74f",
+    "match": "original"
   },
   {
     "key": "ovary",
@@ -480,7 +558,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "044df73f732220c9d781eeef3ad6e81a2aa8ba86",
+    "match": "original"
   },
   {
     "key": "uterus_proliferative",
@@ -495,7 +575,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "350f8052d7d53cd62dded873ec0786ababd6cd89",
+    "match": "original"
   },
   {
     "key": "placenta_villi",
@@ -510,7 +592,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "11ee976bbd76b78444e58242243647ac73e53a2a",
+    "match": "original"
   },
   {
     "key": "compact_bone",
@@ -525,7 +609,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "e8399a2c2bbf5c6499a1a9b694619f8859bf7f4d",
+    "match": "original"
   },
   {
     "key": "elastic_cartilage",
@@ -540,7 +626,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "8e99c728a46bd2b217e207c8e2ef866bf0b5db25",
+    "match": "original"
   },
   {
     "key": "thin_skin",
@@ -555,7 +643,9 @@
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "077cc4db43187042107a7854c0be46b9fc81bafe",
+    "match": "original"
   },
   {
     "key": "embryo_cleavage",
@@ -570,7 +660,9 @@
     "author": "Meta AI (esquema sintético)",
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "95e34ff80c9e5f80d6240b3f49e687a9895e9f68",
+    "match": "original"
   },
   {
     "key": "embryo_gastrulation",
@@ -585,7 +677,9 @@
     "author": "Meta AI (esquema sintético)",
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "f6f102c4ae69cd6d0459dc8f0b8028107d2dfd91",
+    "match": "original"
   },
   {
     "key": "embryo_week4",
@@ -600,6 +694,8 @@
     "author": "Meta AI (esquema sintético)",
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
-    "split": "excluded"
+    "split": "excluded",
+    "sha1": "5685eaffe63f078ab80cdf81f402f36c324f7d2e",
+    "match": "original"
   }
 ]

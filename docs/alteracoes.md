@@ -201,10 +201,23 @@ chat local-tutor ✓.
 - `kidney_cortex` — licença corrigida para CC BY-SA 3.0 (ficha: Uwe Gille, 2006).
 - `lung_alveoli` — ficha do Commons sem Artist/Credit; atribuição PLoS Medicine (CC BY 2.0) mantida como plausível via descrição, com nota de não verificável na ficha. Imagem é original byte a byte.
 
-**Estado final:** 15/15 com prova byte a byte contra o Commons — 6 ficheiros originais (adipose, colon, connective_loose, liver, kidney, lung, nervous_ganglion, smooth_muscle), 9 thumbnails oficiais 960px idênticos. Todos com `author`, `license` e `source_url` preenchidos.
+**Estado final:** 15/15 com prova byte a byte contra o Commons — 8 ficheiros originais (adipose, colon, connective_loose, liver, kidney, lung, nervous_ganglion, smooth_muscle), 7 thumbnails oficiais 960px idênticos. Todos com `license` e `source_url` preenchidos; 14/15 com autor verificável na ficha (`lung_alveoli` tem atribuição plausível mas não verificável — ver nota).
 
 **UI.** O crachá «© autor» é agora um link (`<a>`) para a ficha no Wikimedia Commons (`source_url`), com `rel="noopener noreferrer"` — o campo existia no tipo mas nunca era renderizado.
 
 **README.** Contradição resolvida (a secção da galeria ainda descrevia o estado 5/15—10 unverified); agora descreve o estado real 15/15 com reservas de conteúdo.
 
 **Pos-verificação do motor (imagens autênticas).** Treino 8/12 (67%), validação 2/3 (67%), só verificados 10/15 (67%) — o `transitional_epithelium` passou de acerto para `connective` (0.50): a imagem correta da bexiga tem espessa muscular sob o urotélio e o motor sem classe «bladder» classifica-a como conjuntivo; falha honesta, não falso positivo fabricado. `pytest` 18/18; vitest 33/33; `tsc` limpo.
+
+## Revisão independente (pós-4bed779) — correções aplicadas
+
+Correções decorrentes de uma auditoria externa ao `4bed779`, todas aplicadas e verificadas:
+
+1. **Bug de UI** — o `<a>` do crachá «© autor» estava dentro do cartão com `onClick` que arranca a análise; clicar o link também selecionava a lâmina. Corrigido com `stopPropagation` (`ReferenceAtlasDrawer.tsx`).
+2. **`lung_alveoli`** — `author` esvaziado (Artist/Credit vazios na ficha do Commons, atribuição não verificável); ressalva movida para `provenance_note`, agora visível no tooltip do crachá. Passa a contar-se 14/15 com autor verificável + 1 com atribuição plausível.
+3. **Prova auditável no repo** — `gallery_meta.json` passa a ter `sha1` (local), `commons_sha1` e `match` (`original`/`thumb`) em cada micrografia; `provenance_note` renderizado no tooltip do crachá.
+4. **`source_title` removido** — campo sem uso que já tinha divergido do ficheiro real (bug do urotélio).
+5. **Docs alinhadas** — `README.md` registava «treino 9/12, validação 2/3, total 11/15» (números antigos); corrigido para a corrida real (treino 8/12, validação 2/3, verificados 10/15). `alteracoes.md:204` dizia «6 originais» listando 8, e «9 thumbnails» quando são 7 — corrigido para 8+7.
+6. **Peso/performance** — `loading="lazy"` + `decoding="async"` em todas as miniaturas; `nervous_ganglion` (5,8 MB), `adipose_tissue` (3,7 MB) e `liver` (3,2 MB) substituídos por thumbnails 960px (~30 MB → ~17 MB na galeria total). SHA1 dos originais do Commons registado em `commons_sha1` antes do downscale.
+
+Ressalvas pedagógicas reconhecidas mas **não alteradas** (decisão de conteúdo pendente): `nervous_ganglion` é um feixe nervoso (título diz «gânglio»); `liver` é metástase mamária usada como liver no split de treino; `connective_loose` é tecido de granulação; `adipose_tissue` inclui endométrio; `colon_adenocarcinoma` é subtipo mucinoso; `transitional_epithelium` (bexiga) falha no motor por não existir classe «bexiga».

@@ -28,6 +28,10 @@ export interface GalleryItem {
   license?: string;
   source_url?: string;
   provenance: 'verified' | 'unverified' | 'ai-generated';
+  provenance_note?: string;
+  sha1?: string;
+  commons_sha1?: string;
+  match?: 'original' | 'thumb' | 'probable' | 'none';
 }
 
 /** Análise mapeada devolvida por GET /api/gallery/:key/analysis. */
@@ -316,6 +320,8 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
                         alt={item.title}
                         className="w-full h-full object-cover"
                         draggable={false}
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
 
@@ -327,8 +333,15 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
                             href={item.source_url || undefined}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 underline decoration-dotted underline-offset-2"
-                            title={item.author ? `© ${item.author} · ${item.license} — abrir ficha no Wikimedia Commons` : 'Abrir ficha no Wikimedia Commons'}
+                            title={[
+                              item.author ? `© ${item.author}` : '',
+                              item.license,
+                              item.match ? `prova: ${item.match === 'original' ? 'ficheiro original byte a byte' : item.match === 'thumb' ? 'thumbnail oficial 960px byte a byte' : item.match === 'probable' ? 'thumbnail provável' : 'sem prova por hash'}` : '',
+                              item.provenance_note,
+                              'abrir ficha no Wikimedia Commons',
+                            ].filter(Boolean).join(' · ')}
                           >
                             <ShieldCheck className="w-3 h-3" />
                             {item.author ? `© ${item.author}` : 'origem verificada'}
