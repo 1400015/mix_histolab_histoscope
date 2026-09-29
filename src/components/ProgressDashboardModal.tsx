@@ -18,14 +18,17 @@ export const ProgressDashboardModal: React.FC<ProgressDashboardModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // A11y: fechar com Escape (melhoria 2026-09-28).
+  // A11y: fechar com Escape (melhoria 2026-09-28; guarda isOpen adicionada
+  // 2026-09-29 — era o único modal que registava o listener sempre, com o
+  // modal fechado e a re-subscrever em cada render do pai).
   useEffect(() => {
+    if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onClose) onClose();
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

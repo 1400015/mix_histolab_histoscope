@@ -9,6 +9,15 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
+# Só as dependências de runtime: o `dist/server.js` é empacotado com
+# --packages=external (correcção 2026-09-28), logo importa express/vite/
+# @google/genai/dotenv do node_modules em produção — sem este stage o
+# contentor arrancava com ERR_MODULE_NOT_FOUND.
+FROM node:20-slim AS deps
+WORKDIR /deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
 FROM python:3.12-slim AS runtime
 WORKDIR /app
 
@@ -20,6 +29,8 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY --from=jsbuild /build/dist/index.html /app/dist/index.html
 COPY --from=jsbuild /build/dist/assets /app/dist/assets
 COPY --from=jsbuild /build/dist/server.js /app/server.js
+# Dependências externas do bundle (express, vite, @google/genai, dotenv).
+COPY --from=deps /deps/node_modules /app/node_modules
 # Assets do motor: galeria, metadados e código Python (esbuild não os embute).
 COPY engine /app/engine
 COPY engine/gallery_meta.json /app/gallery_meta.json

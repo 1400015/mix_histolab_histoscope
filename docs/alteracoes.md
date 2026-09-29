@@ -4,6 +4,37 @@ Cada alteração ao código fica registada aqui por data (mais recente primeiro)
 
 ---
 
+## 2026-09-29 — Correcções do review externo (P0–P2 + higiene) (local, sem commit)
+
+**Ficheiros:** `Dockerfile`, `server.ts`, `engine/analyzer.py`, `engine/engine_cli.py`, `engine/chatbot.py`, `engine/engine_bridge.ts`, `engine/README.md`, `src/App.tsx`, `src/components/{AcademicQuizModal,ImageUploaderModal,ReferenceAtlasDrawer,ProgressDashboardModal,SlideComparisonModal}.tsx`, `src/utils/analysisHistory.ts`, `tests/engine_bridge.test.ts`, `package.json`, `.gitignore`, `metadata.json`, `index.html`.
+
+**P0 — partia em produção/offline:**
+1. **Docker runtime sem `node_modules`** — o `dist/server.js` é empacotado com `--packages=external`, logo importa `express`/`vite`/`@google/genai`/`dotenv` do `node_modules`; a imagem final só copiava código e o `node`, e `docker compose up --build` morria com `ERR_MODULE_NOT_FOUND`. Novo stage `deps` (`npm ci --omit=dev`) cujo `node_modules` é copiado para `/app`. O `import` do `vite` em `server.ts` passou a **dinâmico** dentro do ramo `!isProduction` (não é carregado em produção).
+
+**P1 — bugs funcionais:**
+2. **Path traversal em `/api/compare-local`** — `imageBase64: "gallery:<key>"` era concatenado diretamente no caminho (`gallery:../../foo.jpg` escapava de `static/gallery`). A key é agora validada contra `GALLERY_KEYS` (404 se desconhecida), como já acontecia no `:key` da rota da galeria.
+3. **`__dirname` em `/api/gallery/:key/analysis`** — troca para `PROJECT_ROOT` (o server corre de `dist/` em produção e os assets do motor vivem na raiz; era a mesma classe de bug de 2026-09-28).
+4. **Perguntas dissertativas (B6) presas** — `handleRevealModelAnswer` só ligava `showModelAnswer`, mas o bloco da resposta modelo + «Acertei/Errei» estava dentro de `isAnswered`: o primeiro clique escondia a resposta e o aluno ficava sem autoavaliação e sem «Próxima Questão». A ramificação passou a ser por `showModelAnswer`, com o estado da autoavaliação mostrado depois de registada.
+5. **Fill-blanks aceitavam 1 caractere** — a comparação por substring marcava qualquer lacuna como certa com `"a"`/`"e"` (o normalizador remove acentos e pontuação). Agora exige igualdade, ou substring só com 4+ caracteres.
+
+**P2 — rigor e coerência:**
+6. **Aba «As minhas lâminas»** mostrava a barra de pesquisa e o atlas esquemático completo por baixo do histórico — pesquisa, filtro de famílias e grelha passam a render só com `tab !== 'mine'`.
+7. **Timers do uploader** — passam a ser limpos no `finally` (em erro/timeout continuavam a reescrever a fase da análise).
+8. **`ProgressDashboardModal`** — ganhou a guarda `if (!isOpen) return;` no listener de Escape (era o único dos 7 sem ela) e passou a re-subscribir só com `isOpen`/`onClose`.
+9. **Comparação offline silenciosa** — `handleRunLocalComparison` fazia `return` mudo quando a lâmina não tinha imagem (análise guardada/atlas SVG); agora mostra o motivo e há uma nota visível junto ao botão desativado.
+10. **Overlay renomeado `overlay_png_b64` → `overlay_jpg_b64`** — o motor codifica **JPEG** (`cv2.imencode('.jpg', …, 88)`) e o frontend compunha `data:image/jpeg;base64,`: o nome mentia. Atualizado em `analyzer.py`, `engine_bridge.ts` (`LocalAnalysis`) e `App.tsx`.
+11. **Escala offline honesta** — `scale_estimate.source` só é `magnification` para uma ampliação **reconhecida**; um valor desconhecido fica `default` (500 px/mm) em vez de a UI apresentar a ampliação indicada como se tivesse sido usada.
+12. **Docs do motor alinhadas com o código** — `chatbot.py` e `engine/README.md` diziam «sem watershed», mas o `analyzer.py` faz distance-transform seeded watershed (A1); a docstring dizia «adaptive threshold» onde o código usa Otsu global; removido o código morto `dist_s` (`MORPH_OPEN` numa variável nunca usada, com comentário a falar de h-minima) e corrigido o inventário do README (15 imagens, 5 verificadas, classes de cartilagem/rim/pulmão) e a alegação de precisão (por split, **só reprodutível com `python engine/eval.py`** — não há valor fixo no README).
+13. **`/api/compare-slides` e `/api/ask-tutor`** — devolvem **501** com instrução («usa a comparação offline» / «usa /api/chat») em vez de 500 genérico quando falta `GEMINI_API_KEY`.
+
+**Higiene:** `getAnalysis`/`clearAnalyses` removidos (`analysisHistory.ts` nunca os usava); `npm test` passa a correr o vitest e o pytest ficou em `test:engine` (os nomes estavam trocados); entrada obsoleta `esbuild@0.25.12` removida de `allowScripts`; `.gitignore` sem `node_modules/` e `.env` duplicados; título do teste dos fill-blanks deixou de afirmar o contrário do que verifica; `metadata.json`/`index.html` deixaram de se apresentar como «guia diagnóstico de alta precisão» (passa a ferramenta educacional, não substitui diagnóstico médico).
+
+**Verificação.** `npx tsc --noEmit` limpo e `npx vitest run` 17/17 (2 ficheiros). `python -m py_compile` OK em `analyzer.py`/`engine_cli.py`/`chatbot.py`/`questions.py`. **Não** foi possível correr `pytest`/`engine/eval.py` neste ambiente (sem numpy/cv2/pytest instalados neste ambiente), pelo que as alterações ao motor são verificadas só por análise estática e compilação — correr `npm run test:engine` e `python engine/eval.py` num ambiente com `engine/requirements.txt`.
+
+**Fora do lote (decisão consciente):** rate-limit/auth por IP nos endpoints que gastam quota Gemini, limite de body (40 MB) mais apertado, `IndexedDB` para thumbnails, dois escritores de anotações (`App.handleAddAnnotation` + `AnnotationSystem.saveAnnotations`), tipos duplicados motor↔UI e substituição das 10 imagens `unverified`.
+
+---
+
 ## 2026-09-28 — Melhorias de produto e engenharia (lote pós-review) (commit `7d26243`)
 
 **Ficheiros:** `server/gemini.ts` (novo), `server.ts` (reescrito), `engine/engine_cli.py`, `engine/engine_bridge.ts`, `engine/questions.py`, `engine/requirements.txt`, `engine/test_analyzer.py`, `src/App.tsx`, `src/components/{ReferenceAtlasDrawer,MicroscopeViewer,ImageUploaderModal,AcademicQuizModal,SlideComparisonModal,HistologyTutorModal,ProgressDashboardModal}.tsx`, `.github/workflows/ci.yml` (novo), `package.json`, `README.md`.

@@ -33,9 +33,10 @@ export interface LocalAnalysis {
   tissue_confidence: number;
   evidence: { type: string; confidence: number; criteria: string[] }[];
   features: Record<string, number>;
-  // Segmentação de núcleos sobre a lâmina (JPEG base64) — a UI mostra-a
-  // por cima da imagem com um toggle (melhoria 2026-09-28).
-  overlay_png_b64?: string;
+  // Segmentação de núcleos sobre a lâmina (JPEG base64 — o campo chama-se
+  // overlay_jpg_b64 para bater certo com o que o analyzer.py codifica) — a UI
+  // mostra-a por cima da imagem com um toggle (melhoria 2026-09-28).
+  overlay_jpg_b64?: string;
   scale_estimate?: { px_per_mm: number; source: string; note: string };
   // B5: métricas individuais por núcleo segmentado (até 800), em coordenadas
   // de pixel da imagem original — usadas pelo overlay interativo da UI.

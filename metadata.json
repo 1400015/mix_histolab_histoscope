@@ -1,6 +1,6 @@
 {
   "name": "HistoScope AI - Análise Histológica & Treino Académico",
-  "description": "Plataforma de inteligência artificial para identificação de tecidos e constituintes celulares em lâminas histológicas, guia diagnóstico de alta precisão e gerador de avaliação académica.",
+  "description": "Plataforma educacional de histologia: análise assistida de lâminas, métricas morfométricas objetivas, comparação de lâminas e avaliação académica. Ferramenta de estudo — não substitui diagnóstico médico.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

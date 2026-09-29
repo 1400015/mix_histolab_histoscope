@@ -51,14 +51,20 @@ def main() -> None:
             # tamanho do sensor e da câmara; aproximação didática por objetivo).
             mag = req.get("magnification") or req.get("pxPerMm")
             px_per_mm = 500.0
+            source = "default"
             if isinstance(mag, (int, float)) and 20 <= float(mag) <= 1000:
                 px_per_mm = float(mag)  # px/mm explícito
+                source = "explicit"
             elif isinstance(mag, str) and mag.lower() in MAGNIFICATION_PX_PER_MM:
+                # Só uma ampliação RECONHECIDA é "magnification": um valor
+                # desconhecido cai no default de 500 px/mm e a UI tem de o
+                # dizer (antes assumia a ampliação indicada).
                 px_per_mm = MAGNIFICATION_PX_PER_MM[mag.lower()]
+                source = "magnification"
             result = analyze_image(img, px_per_mm=px_per_mm)
             result["scale_estimate"] = {
                 "px_per_mm": px_per_mm,
-                "source": "magnification" if isinstance(mag, str) else ("explicit" if mag else "default"),
+                "source": source,
                 "note": "estimativa aproximada; não substitui calibração com micrómetro de lâmina",
             }
             # B5: os núcleos individuais (até 800, coordenadas + métricas)

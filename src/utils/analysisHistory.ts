@@ -78,21 +78,9 @@ export function saveAnalysis(entry: StoredAnalysis): void {
   }
 }
 
-export function getAnalysis(id: string): StoredAnalysis | null {
-  return listAnalyses().find((i) => i.id === id) ?? null;
-}
-
 export function deleteAnalysis(id: string): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(listAnalyses().filter((i) => i.id !== id)));
-  } catch {
-    /* ignore */
-  }
-}
-
-export function clearAnalyses(): void {
-  try {
-    localStorage.removeItem(KEY);
   } catch {
     /* ignore */
   }

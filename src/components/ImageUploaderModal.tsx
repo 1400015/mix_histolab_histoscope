@@ -97,17 +97,22 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
     // Melhoria 2026-09-28: o endpoint aceita mode auto|local|gemini mas a
     // UI nunca o enviava — agora há um seletor junto ao botão.
     const signal = AbortSignal.timeout(150_000);
+    // Correcção 2026-09-29: os timers passam a ser limpos no finally — antes,
+    // em caso de erro/timeout ficavam a correr e reescreviam analysisStage
+    // depois de o modal já ter mostrado o erro.
+    let timer1: ReturnType<typeof setTimeout> | undefined;
+    let timer2: ReturnType<typeof setTimeout> | undefined;
 
     try {
       setIsAnalyzing(true);
       setErrorMessage(null);
       setAnalysisStage('A segmentar arquitetura celular e coloração...');
 
-      const timer1 = setTimeout(() => {
+      timer1 = setTimeout(() => {
         setAnalysisStage('A identificar constituintes celulares e núcleos...');
       }, 1500);
 
-      const timer2 = setTimeout(() => {
+      timer2 = setTimeout(() => {
         setAnalysisStage('A gerar critérios de reconhecimento de alta precisão e teste académico...');
       }, 3500);
 
@@ -125,9 +130,6 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
           magnification: magnification || undefined,
         }),
       });
-
-      clearTimeout(timer1);
-      clearTimeout(timer2);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -153,6 +155,8 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
           : err.message || 'Falha ao processar a imagem com a IA.',
       );
     } finally {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
       setIsAnalyzing(false);
       setAnalysisStage('');
     }

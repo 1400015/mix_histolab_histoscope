@@ -95,7 +95,18 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
 
   // B1: corre a comparação offline (motor CV local em ambas as imagens).
   const handleRunLocalComparison = async () => {
-    if (!refGalleryKey || !(imageBase64 || galleryKey)) return;
+    // Correcção 2026-09-29: antes era um `return` silencioso — o utilizador
+    // clicava e não acontecia nada (análise guardada / atlas sem imagem).
+    if (!refGalleryKey) {
+      setLocalError('Galeria de referência ainda não carregada — tenta novamente dentro de instantes.');
+      return;
+    }
+    if (!(imageBase64 || galleryKey)) {
+      setLocalError(
+        'Esta lâmina não tem imagem associada: a comparação offline só funciona com imagens carregadas ou lâminas da galeria real.',
+      );
+      return;
+    }
     try {
       setIsLocalComparing(true);
       setLocalError(null);
@@ -288,6 +299,11 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
                   </>
                 )}
               </button>
+              {!(imageBase64 || galleryKey) && (
+                <span className="text-[11px] text-amber-400/90 max-w-[220px]">
+                  Sem imagem associada (análise guardada ou atlas esquemático)
+                </span>
+              )}
             </div>
             <label className="flex items-center gap-1.5 text-slate-400 cursor-pointer select-none">
               <input

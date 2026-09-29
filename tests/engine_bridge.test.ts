@@ -46,7 +46,7 @@ describe('mapLocalQuestions (contrato motor → UI)', () => {
     expect(mapped[0].questionType).toBe('multiple_choice');
   });
 
-  it('filtra perguntas open (não auto-corrigíveis) e malformadas', () => {
+  it('descarta perguntas malformadas (sem options) e mantém as open (autoavaliação)', () => {
     const qs = [
       { type: 'open', question: 'Descreve', answer: 'x', explanation: '', topic: 't' },
       { type: 'mcq', question: 'Sem options', answer: 'x', explanation: '', topic: 't' },

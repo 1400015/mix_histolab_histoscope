@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -220,8 +219,16 @@ app.post('/api/compare-local', async (req: Request, res: Response) => {
     }
     // imageBase64 pode ser "gallery:<key>" quando a amostra em estudo é ela
     // própria uma lâmina da galeria real (não há base64 no cliente nesse caso).
-    const primary = imageBase64.startsWith('gallery:')
-      ? await localAnalyze(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${imageBase64.slice('gallery:'.length)}.jpg`))
+    // Correção 2026-09-29: a key também é validada contra a galeria — antes,
+    // "gallery:../../foo" compunha um caminho fora de static/gallery.
+    const primaryGalleryKey = imageBase64.startsWith('gallery:')
+      ? imageBase64.slice('gallery:'.length)
+      : null;
+    if (primaryGalleryKey && !GALLERY_KEYS.has(primaryGalleryKey)) {
+      return res.status(404).json({ error: 'Lâmina da amostra desconhecida na galeria.' });
+    }
+    const primary = primaryGalleryKey
+      ? await localAnalyze(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${primaryGalleryKey}.jpg`))
       : await localAnalyzeBase64(imageBase64, magnification);
     const refPath = path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${galleryKey}.jpg`);
     const reference = await localAnalyze(refPath);
@@ -247,6 +254,9 @@ app.post('/api/compare-slides', async (req: Request, res: Response) => {
 
     if (!primarySlide || !referenceSlide) {
       return res.status(400).json({ error: 'Lâminas para comparação não fornecidas.' });
+    }
+    if (!hasGemini()) {
+      return res.status(501).json({ error: 'Comparação com IA requer GEMINI_API_KEY — usa a «Comparação Offline (motor local)».' });
     }
 
     const ai = getGenAI();
@@ -366,6 +376,9 @@ app.post('/api/ask-tutor', async (req: Request, res: Response) => {
     if (!question) {
       return res.status(400).json({ error: 'Pergunta não informada.' });
     }
+    if (!hasGemini()) {
+      return res.status(501).json({ error: 'Tutor Gemini indisponível: falta GEMINI_API_KEY. Usa /api/chat, que tem tutor offline.' });
+    }
 
     const ai = getGenAI();
     const parts: any[] = [];
@@ -438,7 +451,9 @@ app.get('/api/gallery/:key/analysis', async (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Lâmina desconhecida na galeria.' });
   }
   try {
-    const imgPath = path.join(__dirname, 'engine', 'static', 'gallery', `${req.params.key}.jpg`);
+    // PROJECT_ROOT (não __dirname): em produção o server corre de dist/ e os
+    // assets do motor ficam na raiz (bug de caminhos 2026-09-28).
+    const imgPath = path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${req.params.key}.jpg`);
     const analysis = await localAnalyze(imgPath);
     res.json({ ...localAnalysisToHistology(analysis), mode: 'local', localAnalysis: analysis });
   } catch (e: any) {
@@ -454,6 +469,9 @@ app.get('/api/status', (_req: Request, res: Response) => {
 // Mount Vite or static server
 async function startServer() {
   if (!isProduction) {
+    // Import dinâmico: em produção o servidor não carrega o `vite` (a imagem
+    // runtime só traz as dependências de servidor).
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

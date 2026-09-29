@@ -2,7 +2,8 @@
 
 Pure-computer-vision pipeline for H&E-stained histology images:
 - Color deconvolution (Hematoxylin / Eosin separation)
-- Nucleus segmentation (hematoxylin channel, adaptive threshold + morphology)
+- Nucleus segmentation (hematoxylin channel, global Otsu threshold + morphology
+  + distance-transform seeded watershed for touching nuclei)
 - Feature extraction (density, size, ellipticity, stromal ratio, color stats)
 - Rule-based tissue classification with confidence
 """
@@ -81,9 +82,8 @@ def _split_touching_nuclei(clean: np.ndarray, labels: np.ndarray, stats: np.ndar
             next_label += 1
             out[comp] = next_label
             continue
-        # h-minima suppression on the distance map to avoid spurious minima
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        dist_s = cv2.morphologyEx(dist, cv2.MORPH_OPEN, kernel)
+        # Marcadores = sementes (máximos locais da transformada de distância);
+        # o watershed corre sobre a componente isolada.
         markers = seed_map.astype(np.int32)
         markers = markers + 1
         markers[~comp] = 0
@@ -350,13 +350,15 @@ def analyze_image(bgr: np.ndarray, px_per_mm: float = 500.0) -> dict[str, Any]:
     for i in infos[:400]:
         cv2.circle(vis, (i.x, i.y), 1, (255, 255, 255), -1)
 
+    # O overlay é JPEG (não PNG): codificado a 88 de qualidade para o payload
+    # base64 não rebentar com imagens grandes — o nome do campo diz isso.
     enc = cv2.imencode(".jpg", vis, [cv2.IMWRITE_JPEG_QUALITY, 88])[1].tobytes()
-    mask_b64 = base64.b64encode(enc).decode()
+    overlay_b64 = base64.b64encode(enc).decode()
     return {
         "features": features,
         "tissue": tissue,
         "tissue_confidence": confidence,
         "evidence": evidence,
         "nuclei": [asdict(i) for i in infos[:800]],
-        "overlay_png_b64": mask_b64,
+        "overlay_jpg_b64": overlay_b64,
     }

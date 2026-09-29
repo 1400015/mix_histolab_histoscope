@@ -239,6 +239,11 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
             )}
           </div>
         )}
+        {/* Filtros, pesquisa e grelha — só para o atlas/galeria. Sem isto, a
+            aba «As minhas lâminas» mostrava a barra de pesquisa e o atlas
+            esquemático completo por baixo do histórico (bug 2026-09-29). */}
+        {tab !== 'mine' && (
+          <>
         {/* Filter and Search Bar */}
         <div className="p-4 border-b border-slate-800 space-y-3 bg-slate-950/50">
           {/* Search Input */}
@@ -431,6 +436,8 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
             })
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

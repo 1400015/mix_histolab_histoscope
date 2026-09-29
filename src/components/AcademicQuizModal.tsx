@@ -74,6 +74,11 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
     setCurrentIndex(0);
     setSelectedOption(null);
     setFillBlankInput('');
+    // B6: o estado da pergunta dissertativa também volta ao início — sem isto,
+    // «Repetir Este Teste» mostrava a resposta modelo já revelada.
+    setOpenInput('');
+    setOpenSelfGrade(null);
+    setShowModelAnswer(false);
     setShowOptionsHint(false);
     setIsAnswered(false);
     setScore(0);
@@ -130,9 +135,14 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
       ...(currentQ.acceptableAnswers || []),
     ];
 
+    // Correção 2026-09-29: a comparação por substring só vale para respostas
+    // com 4+ caracteres — antes, "a" ou "e" marcavam QUALQUER lacuna como certa
+    // (o normalizeText remove acentos e pontuação, sobrando 1 caractere).
     const isCorrect = acceptable.some((ans) => {
       const norm = normalizeText(ans);
-      return norm === userNorm || norm.includes(userNorm) || userNorm.includes(norm);
+      if (!norm || !userNorm) return false;
+      if (norm === userNorm) return true;
+      return userNorm.length >= 4 && (norm.includes(userNorm) || userNorm.includes(norm));
     });
 
     if (isCorrect) {
@@ -472,45 +482,60 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
                       onChange={(e) => setOpenInput(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-60"
                     />
-                    {!isAnswered ? (
+                    {/* Correcção 2026-09-29: a ramificação é por showModelAnswer
+                        (não por isAnswered) — antes, o primeiro clique escondia
+                        a resposta modelo e deixava o aluno sem autoavaliação nem
+                        «Próxima Questão» (o rodapé exige isAnswered). */}
+                    {!showModelAnswer ? (
                       <button
                         onClick={handleRevealModelAnswer}
-                        disabled={!openInput.trim() && !showModelAnswer}
+                        disabled={!openInput.trim()}
                         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-xs transition-colors disabled:opacity-40"
                       >
-                        {showModelAnswer ? 'Compara com a resposta modelo abaixo' : 'Ver resposta modelo e autoavaliar'}
+                        Ver resposta modelo e autoavaliar
                       </button>
-                    ) : showModelAnswer ? (
+                    ) : (
                       <div className="space-y-2">
                         <div className="p-3 bg-indigo-950/40 border border-indigo-800/50 rounded-lg text-xs text-slate-200 space-y-1">
                           <span className="text-indigo-300 font-semibold">Resposta modelo:</span>
                           <p className="leading-relaxed">{currentQ.modelAnswer}</p>
                         </div>
-                        <p className="text-[11px] text-slate-400">A tua resposta autoavaliada como:</p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleOpenSelfGrade(true)}
-                            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                              openSelfGrade === true
-                                ? 'bg-emerald-600 border-emerald-500 text-white'
-                                : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-emerald-950/40 hover:border-emerald-600'
-                            }`}
-                          >
-                            ✓ Acertei
-                          </button>
-                          <button
-                            onClick={() => handleOpenSelfGrade(false)}
-                            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                              openSelfGrade === false
-                                ? 'bg-rose-600 border-rose-500 text-white'
-                                : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-rose-950/40 hover:border-rose-600'
-                            }`}
-                          >
-                            ✗ Errei
-                          </button>
-                        </div>
+                        {!isAnswered ? (
+                          <>
+                            <p className="text-[11px] text-slate-400">A tua resposta autoavaliada como:</p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleOpenSelfGrade(true)}
+                                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                                  openSelfGrade === true
+                                    ? 'bg-emerald-600 border-emerald-500 text-white'
+                                    : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-emerald-950/40 hover:border-emerald-600'
+                                }`}
+                              >
+                                ✓ Acertei
+                              </button>
+                              <button
+                                onClick={() => handleOpenSelfGrade(false)}
+                                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                                  openSelfGrade === false
+                                    ? 'bg-rose-600 border-rose-500 text-white'
+                                    : 'bg-slate-900 border-slate-700 text-slate-200 hover:bg-rose-950/40 hover:border-rose-600'
+                                }`}
+                              >
+                                ✗ Errei
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <p className="text-[11px] text-slate-400">
+                            Autoavaliação registada:{' '}
+                            <strong className={openSelfGrade ? 'text-emerald-400' : 'text-rose-400'}>
+                              {openSelfGrade ? '✓ Acertei' : '✗ Errei'}
+                            </strong>
+                          </p>
+                        )}
                       </div>
-                    ) : null}
+                    )}
                   </div>
                   {isAnswered && (
                     <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg text-xs text-slate-300">

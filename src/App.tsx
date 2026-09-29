@@ -100,7 +100,7 @@ export default function App() {
     setSlideDescription(item.description);
     setCurrentAnalysis(mapped);
     setCurrentLocalAnalysis(mapped.localAnalysis ?? null);
-    const ov = (mapped.localAnalysis as { overlay_png_b64?: string } | null)?.overlay_png_b64;
+    const ov = (mapped.localAnalysis as { overlay_jpg_b64?: string } | null)?.overlay_jpg_b64;
     setOverlaySrc(ov ? `data:image/jpeg;base64,${ov}` : undefined);
     setUserAnnotations([]);
     setSelectedConstituent(null);
@@ -126,7 +126,7 @@ export default function App() {
     setSlideDescription(result.analysis.tissueClassification.generalDescription);
     setCurrentAnalysis(result.analysis);
     setCurrentLocalAnalysis(result.localAnalysis ?? null);
-    const ovRaw = (result.localAnalysis as { overlay_png_b64?: string } | null)?.overlay_png_b64;
+    const ovRaw = (result.localAnalysis as { overlay_jpg_b64?: string } | null)?.overlay_jpg_b64;
     setOverlaySrc(ovRaw ? `data:image/jpeg;base64,${ovRaw}` : undefined);
     // Nova lâmina carregada: anotações da anterior não se aplicam.
     setUserAnnotations([]);
