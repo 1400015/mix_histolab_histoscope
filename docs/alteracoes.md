@@ -263,3 +263,15 @@ Ressalvas pedagógicas reconhecidas mas **não alteradas** (decisão de conteúd
 18. **`adipose_tissue`** — a amostra inclui **endométrio adjacente** («endométrio e tecido adiposo»). Nota acrescentada à descrição.
 19. **`colon_adenocarcinoma`** — é o **subtipo mucinoso** (>50% componente mucinoso extracelular), não o adenocarcinoma convencional. Título e descrição corrigidos; referência cruzada para a lâmina sintética «Cólon» (normal).
 20. **`transitional_epithelium`** — limitação do motor agora documentada no `provenance_note` (visível no tooltip do crachá): sem classe «bexiga/urotélio», a espessa muscular vesical faz o motor classificar como conjuntivo — falha conhecida e verificada no eval.
+
+## Quinta revisão — regressões do 2369881 e documentação em atraso (21–26)
+
+21. **`eval.py` — linha «28 sintéticas» factualmente errada** — `excluded` passou a conter o `liver` (micrografia real NCI), mas a mensagem dizia que todas eram sintéticas. Agora separa: «27 lâmina(s) sintética(s) (ai-generated) e 1 micrografia(s) real(is) com rótulo enganoso (liver)».
+22. **`eval.py` — ressalva (2) sem conteúdo** — com 15 verificadas > 14 avaliadas, o subtotal verificava-se redundante mas a ressalva continuava a citar rótulos unverified inexistentes. Agora condicional: «todos os rótulos avaliados são verificados (subtotal = total)». Docstring atualizado (14 micrografias, 11+3) com a exclusão do liver declarada.
+23. **`engine/README.md` — contagem desatualizada** — dizia «12 imagens de treino + 3 de validação»; corrigido para 11+3 com a razão da exclusão do liver.
+24. **`README.md:89` — «devolvem indeterminado» desatualizado desde b1a991d** — o fallback «matriz dominante» devolve muscular/connective a 0.55 nesses campos; a frase agora declara a exceção com referência ao engine/README.
+25. **`engine/README.md` — fallback «matriz dominante» ausente** — acrescentada secção «Comportamento em campos duvidosos» com o mecanismo completo (guardas, condições, confiança 0.55, brancos/pretos continuam indeterminado).
+26. **`test_analyzer.py` — docstring «as 12 imagens»** — corrigida: micrografias reais no parametrize, sintéticas fora por desenho.
+27. **Nota de honestidade no README principal** — a subida 67%→71% vem da exclusão do liver (o caso removido era um dos erros), não de melhoria do modelo; `liver` é a única classe do motor sem cobertura no eval — declarado explicitamente em vez de implícito.
+
+Cosmético aceite como está: a chave/ficheiro `nervous_ganglion` mantém o nome antigo (não é referenciada em código; renomear exigiria renormalizar hashes sem benefício).

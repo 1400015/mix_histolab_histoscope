@@ -3,8 +3,9 @@
 Primeiro conjunto de testes do projeto (2026-09-28 — antes existiam zero):
 - guarda "indeterminate" para imagens sem tecido classificável;
 - contrato do resultado (chaves, tipos, intervalos);
-- as 12 imagens da galeria correm sem excepção e classificam dentro do
-  conjunto de tecidos conhecido.
+- as micrografias reais da galeria correm sem excepção e classificam dentro
+  do conjunto de tecidos conhecido (as sintéticas ai-generated estão fora
+  do @parametrize — não são micrografias).
 
 Correr com:  pytest -q engine/
 """

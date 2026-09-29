@@ -16,7 +16,9 @@ pip install -r engine/requirements.txt   # numpy + opencv-python-headless
 4. **Features globais** — densidade nuclear/mm², área mediana, CV, circularidade/elongação medianas, razão de estroma (eosina não-nuclear), razão de espaços claros (vacúolos/lúmen), médias H e E.
 5. **Classificação por regras** — epitelial, conjuntivo, muscular, nervoso, adiposo, hepático, cartilagem, rim e pulmão, com confiança normalizada e critérios morfológicos de evidência.
 
-**Precisão:** medida por split, com `python engine/eval.py` (12 imagens de treino + 3 de validação). O split de treino é **indicativo**, não validação real — as regras foram afinadas sobre essas mesmas imagens, e as regras de rim/pulmão foram afinadas *pós-hoc* contra o split de validação (ver docstring de `eval.py`). As lâminas sem critérios claros devolvem «indeterminado» em vez de um tecido inventado (guardas 2026-09-28). Os **testes** estão em `test_analyzer.py` (`pytest -q engine/`).
+**Precisão:** medida por split, com `python engine/eval.py` (11 imagens de treino + 3 de validação; `liver` foi excluída dos splits — a micrografia é uma metástase mamária e o rótulo era enganoso; `liver` é a única classe do motor sem cobertura no eval). O split de treino é **indicativo**, não validação real — as regras foram afinadas sobre essas mesmas imagens, e as regras de rim/pulmão foram afinadas *pós-hoc* contra o split de validação (ver docstring de `eval.py`). Os **testes** estão em `test_analyzer.py` (`pytest -q engine/`).
+
+**Comportamento em campos duvidosos:** lâminas sem critérios claros devolvem «indeterminado» em vez de um tecido inventado (guardas 2026-09-28). Exceção deliberada (fallback «matriz dominante», 2026-09-29): campos com <15 núcleos mas matriz eosinofílica dominante (estroma > 0.6, eosina > 100) devolvem `muscular` (estruturas alongadas) ou `connective` (colagénio denso) a 0.55 — uma leitura de matriz com confiança baixa, não morfometria nuclear; campos brancos (H alto) e pretos (eosina nula) continuam «indeterminado».
 
 ## Interface (CLI stdin/stdout)
 

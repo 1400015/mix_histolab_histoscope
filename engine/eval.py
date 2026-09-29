@@ -15,9 +15,11 @@ Splits (A3):
   imagens após a primeira avaliação (pós-hoc); a cartilagem pálida do
   Commons mantém-se como limitação conhecida (indeterminate).
 
-Honestidade do número (2026-09-29): a galeria tem 15 imagens, logo cada
-imagem vale ~7 pontos percentuais — uma classificação a mudar mexe no
-resultado tanto como uma melhoria real. O relatório imprime por isso o `n`
+Honestidade do número (2026-09-29): o eval cobre 14 micrografias reais
+(11 treino + 3 validação), logo cada imagem vale ~7 pontos percentuais
+— uma classificação a mudar mexe no resultado tanto como uma melhoria
+real. Nota: `liver` foi excluída dos splits (metástase mamária, rótulo
+enganoso); `liver` é assim a única classe do motor sem cobertura no eval. O relatório imprime por isso o `n`
 de cada split, quantas imagens com rótulo (proveniência) por confirmar
 entraram no cálculo e o subtotal só com as verificadas. Nenhum destes
 números é uma métrica de generalização.
@@ -80,7 +82,17 @@ def main() -> None:
     # micrografias reais e os rótulos não são classes do motor.
     excluded = [m for m in meta if m.get("split") == "excluded"]
     if excluded:
-        print(f"Nota: {len(excluded)} l\u00e2mina(s) sint\u00e9tica(s) (ai-generated) fora da avalia\u00e7\u00e3o.")
+        syn = [m for m in excluded if m.get("provenance") == "ai-generated"]
+        real = [m for m in excluded if m.get("provenance") != "ai-generated"]
+        parts = []
+        if syn:
+            parts.append(f"{len(syn)} l\u00e2mina(s) sint\u00e9tica(s) (ai-generated)")
+        if real:
+            parts.append(
+                f"{len(real)} micrografia(s) real(is) com r\u00f3tulo enganoso "
+                f"({', '.join(m['key'] for m in real)})"
+            )
+        print(f"Nota: {' e '.join(parts)} fora da avalia\u00e7\u00e3o.")
 
     c1, t1, u1 = run(train, "Treino")
     c2, t2, u2 = run(validation, "Validação (pós-hoc, ver docstring)")
@@ -99,8 +111,11 @@ def main() -> None:
 
     print()
     print("Ressalvas: (1) amostra minúscula — cada imagem vale ~7 pontos percentuais;")
-    print("           (2) rótulos 'unverified' no gallery_meta.json não foram confirmados,")
-    print(f"           ficaram fora do subtotal verificado ({cv_}/{tv});")
+    if tv < tt:
+        print("           (2) rótulos 'unverified' no gallery_meta.json não foram confirmados,")
+        print(f"           ficaram fora do subtotal verificado ({cv_}/{tv});")
+    else:
+        print("           (2) todos os rótulos avaliados são verificados (subtotal = total);")
     print("           (3) o split de treino é o conjunto onde as regras foram afinadas.")
     if u1 or u2:
         print(f"           Imagens com rótulo por confirmar: {', '.join(u1 + u2)}")
