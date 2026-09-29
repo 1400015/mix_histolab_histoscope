@@ -23,6 +23,10 @@ interface AnalysisPanelProps {
   // B3: exportar relatório (Markdown + PDF via diálogo de impressão).
   onExportMarkdown?: () => void;
   onExportPrint?: () => void;
+  // Lâminas sintéticas (ai-generated): o veredicto do motor não é aplicável —
+  // o painel avisa em vez de apresentar uma classificação errada como certa.
+  provenance?: 'verified' | 'unverified' | 'ai-generated';
+  slideDescription?: string;
 }
 
 export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
@@ -32,6 +36,8 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
   onOpenQuiz,
   onExportMarkdown,
   onExportPrint,
+  provenance,
+  slideDescription,
 }) => {
   const [activeTab, setActiveTab] = useState<'cells' | 'diagnosis' | 'staining' | 'overview'>('cells');
 
@@ -49,6 +55,21 @@ export const AnalysisPanel: React.FC<AnalysisPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl text-slate-200">
+      {provenance === 'ai-generated' && (
+        <div className="p-3 bg-fuchsia-950/60 border-b border-fuchsia-500/40 flex items-start gap-2">
+          <ShieldAlert className="w-4 h-4 text-fuchsia-400 shrink-0 mt-0.5" />
+          <div className="text-xs leading-relaxed">
+            <span className="font-semibold text-fuchsia-300">Imagem sintética gerada por IA.</span>{" "}
+            <span className="text-slate-300">
+              A classificação automática abaixo <strong>não é aplicável</strong> a esta lâmina — o motor
+              só reconhece tecidos reais. Usa a descrição de referência como fonte de estudo.
+            </span>
+            {slideDescription && (
+              <span className="block mt-1.5 text-slate-400">{slideDescription}</span>
+            )}
+          </div>
+        </div>
+      )}
       {/* Panel Header: Tissue Diagnosis Banner */}
       <div className="p-4 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/40 border-b border-slate-800">
         <div className="flex items-start justify-between gap-3">

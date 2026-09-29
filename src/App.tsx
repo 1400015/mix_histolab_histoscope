@@ -44,6 +44,8 @@ export default function App() {
   const [slideImageSrc, setSlideImageSrc] = useState<string | undefined>(undefined);
   const [slideSvgContent, setSlideSvgContent] = useState<string | undefined>(defaultSlide.thumbnailSvg);
   const [slideDescription, setSlideDescription] = useState<string>(defaultSlide.description);
+  // Proveniência da lâmina ativa — o AnalysisPanel avisa quando é sintética (ai-generated).
+  const [slideProvenance, setSlideProvenance] = useState<'verified' | 'unverified' | 'ai-generated'>('verified');
   const [currentAnalysis, setCurrentAnalysis] = useState<HistologyAnalysis>(defaultSlide.analysis);
   // Análise local crua (motor CV) — é o que o endpoint de quiz offline precisa
   // (contrato 2026-09-28: antes o frontend nunca enviava analysis e o quiz
@@ -85,6 +87,7 @@ export default function App() {
     setSlideImageSrc(undefined);
     setSlideSvgContent(slide.thumbnailSvg);
     setSlideDescription(slide.description);
+    setSlideProvenance('verified');
     setCurrentAnalysis(slide.analysis);
     // Correcção 2026-09-28: as anotações pertencem à lâmina anterior —
     // sem limpar, caixas da lâmina A apareciam (e gravavam) na B.
@@ -108,6 +111,7 @@ export default function App() {
     setSlideImageSrc(`/gallery-images/${item.key}.jpg`);
     setSlideSvgContent(undefined);
     setSlideDescription(item.description);
+    setSlideProvenance(item.provenance);
     setCurrentAnalysis(mapped);
     setCurrentLocalAnalysis(mapped.localAnalysis ?? null);
     const ov = mapped.localAnalysis?.overlay_jpg_b64;
@@ -134,6 +138,7 @@ export default function App() {
     setSlideImageSrc(result.imageBase64);
     setSlideSvgContent(undefined);
     setSlideDescription(result.analysis.tissueClassification.generalDescription);
+    setSlideProvenance('verified');
     setCurrentAnalysis(result.analysis);
     setCurrentLocalAnalysis(result.localAnalysis ?? null);
     const ovRaw = result.localAnalysis?.overlay_jpg_b64;
@@ -344,6 +349,8 @@ export default function App() {
             {rightPanelMode === 'analysis' ? (
               <AnalysisPanel
                 analysis={currentAnalysis}
+                provenance={slideProvenance}
+                slideDescription={slideDescription}
                 selectedConstituent={selectedConstituent}
                 onSelectConstituent={(c) => setSelectedConstituent(c)}
                 onOpenQuiz={() => setIsQuizOpen(true)}
@@ -429,6 +436,7 @@ export default function App() {
           setCurrentAnalysis(entry.analysis);
           setCurrentLocalAnalysis(entry.localFeatures ? { features: entry.localFeatures } : null);
           setSlideDescription(entry.analysis.tissueClassification.generalDescription);
+          setSlideProvenance('verified');
           setSlideSvgContent(undefined);
           void getThumbnails([entry.id]).then((t) => {
             setSlideImageSrc(t[entry.id] ?? undefined);

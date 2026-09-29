@@ -32,6 +32,7 @@ export interface GalleryItem {
   sha1?: string;
   commons_sha1?: string;
   match?: 'original' | 'thumb' | 'probable' | 'none';
+  local_sha1?: string;
 }
 
 /** Análise mapeada devolvida por GET /api/gallery/:key/analysis. */

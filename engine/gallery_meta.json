@@ -253,8 +253,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "71330802cfb587f6a398d9395370e9cfa40167c7",
-    "match": "original"
+    "local_sha1": "71330802cfb587f6a398d9395370e9cfa40167c7"
   },
   {
     "key": "thyroid",
@@ -270,8 +269,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "16af05696c207daae43bc1779ecc9a6da5d5e410",
-    "match": "original"
+    "local_sha1": "16af05696c207daae43bc1779ecc9a6da5d5e410"
   },
   {
     "key": "adrenal",
@@ -287,8 +285,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "18eea26d930be693d80c28b733586c9b7f3c396b",
-    "match": "original"
+    "local_sha1": "18eea26d930be693d80c28b733586c9b7f3c396b"
   },
   {
     "key": "pituitary",
@@ -304,8 +301,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "a7aff0f8ea3c663bebf4585be6fa9eaecffcda7e",
-    "match": "original"
+    "local_sha1": "a7aff0f8ea3c663bebf4585be6fa9eaecffcda7e"
   },
   {
     "key": "pancreatic_islets",
@@ -321,8 +317,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "f65b4c4ea9fc8cf02be2e3985c2de874756c3e1d",
-    "match": "original"
+    "local_sha1": "f65b4c4ea9fc8cf02be2e3985c2de874756c3e1d"
   },
   {
     "key": "aorta",
@@ -338,8 +333,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "9ce6739347ef16e6510598f2bc131b8ecc855636",
-    "match": "original"
+    "local_sha1": "9ce6739347ef16e6510598f2bc131b8ecc855636"
   },
   {
     "key": "artery_vein",
@@ -355,8 +349,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "812dc6a37fff61412406e937d6118388417c37ad",
-    "match": "original"
+    "local_sha1": "812dc6a37fff61412406e937d6118388417c37ad"
   },
   {
     "key": "esophagus",
@@ -372,8 +365,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "62e8be3eef22dc85a7126a663da42ce808ba5707",
-    "match": "original"
+    "local_sha1": "62e8be3eef22dc85a7126a663da42ce808ba5707"
   },
   {
     "key": "stomach_fundus",
@@ -389,8 +381,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "9045fb10e654db15dad9480957518055cddd940d",
-    "match": "original"
+    "local_sha1": "9045fb10e654db15dad9480957518055cddd940d"
   },
   {
     "key": "jejunum",
@@ -406,8 +397,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "7b1fc1ee56bc2ba7574bfaca784ca3783fa21114",
-    "match": "original"
+    "local_sha1": "7b1fc1ee56bc2ba7574bfaca784ca3783fa21114"
   },
   {
     "key": "colon_normal",
@@ -423,8 +413,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "a129a9d7c178ccf5826ef048580bec2220d53452",
-    "match": "original"
+    "local_sha1": "a129a9d7c178ccf5826ef048580bec2220d53452"
   },
   {
     "key": "liver_normal",
@@ -440,8 +429,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "4fda4459bc97c87c6978e289669aad20ca2c4c9c",
-    "match": "original"
+    "local_sha1": "4fda4459bc97c87c6978e289669aad20ca2c4c9c"
   },
   {
     "key": "parotid_gland",
@@ -457,8 +445,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "4c9301a36e7c112916185da145e2ea7616ad1de6",
-    "match": "original"
+    "local_sha1": "4c9301a36e7c112916185da145e2ea7616ad1de6"
   },
   {
     "key": "trachea",
@@ -474,8 +461,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "2319af1781fd7203af57d371ae2e6721b1b344d4",
-    "match": "original"
+    "local_sha1": "2319af1781fd7203af57d371ae2e6721b1b344d4"
   },
   {
     "key": "lymph_node",
@@ -491,8 +477,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "8d4111af2bb7a3e64558271ab9486f107d1f6a53",
-    "match": "original"
+    "local_sha1": "8d4111af2bb7a3e64558271ab9486f107d1f6a53"
   },
   {
     "key": "spleen",
@@ -508,8 +493,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "e31e090f5b903b711069f8e1f42a3df648cb882d",
-    "match": "original"
+    "local_sha1": "e31e090f5b903b711069f8e1f42a3df648cb882d"
   },
   {
     "key": "thymus",
@@ -525,8 +509,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "2935662304c8c61149980cc153396cbd7648bf4e",
-    "match": "original"
+    "local_sha1": "2935662304c8c61149980cc153396cbd7648bf4e"
   },
   {
     "key": "testis",
@@ -542,8 +525,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "71be34d24012744f3a859215b63412622dd5c74f",
-    "match": "original"
+    "local_sha1": "71be34d24012744f3a859215b63412622dd5c74f"
   },
   {
     "key": "ovary",
@@ -559,8 +541,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "044df73f732220c9d781eeef3ad6e81a2aa8ba86",
-    "match": "original"
+    "local_sha1": "044df73f732220c9d781eeef3ad6e81a2aa8ba86"
   },
   {
     "key": "uterus_proliferative",
@@ -576,8 +557,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "350f8052d7d53cd62dded873ec0786ababd6cd89",
-    "match": "original"
+    "local_sha1": "350f8052d7d53cd62dded873ec0786ababd6cd89"
   },
   {
     "key": "placenta_villi",
@@ -593,8 +573,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "11ee976bbd76b78444e58242243647ac73e53a2a",
-    "match": "original"
+    "local_sha1": "11ee976bbd76b78444e58242243647ac73e53a2a"
   },
   {
     "key": "compact_bone",
@@ -610,8 +589,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "e8399a2c2bbf5c6499a1a9b694619f8859bf7f4d",
-    "match": "original"
+    "local_sha1": "e8399a2c2bbf5c6499a1a9b694619f8859bf7f4d"
   },
   {
     "key": "elastic_cartilage",
@@ -627,8 +605,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "8e99c728a46bd2b217e207c8e2ef866bf0b5db25",
-    "match": "original"
+    "local_sha1": "8e99c728a46bd2b217e207c8e2ef866bf0b5db25"
   },
   {
     "key": "thin_skin",
@@ -644,8 +621,7 @@
     "source_url": "",
     "provenance_note": "Imagem sintética gerada por IA (Meta AI) para referência pedagógica; não é micrografia real e não é usada no treino/validação do motor.",
     "split": "excluded",
-    "sha1": "077cc4db43187042107a7854c0be46b9fc81bafe",
-    "match": "original"
+    "local_sha1": "077cc4db43187042107a7854c0be46b9fc81bafe"
   },
   {
     "key": "embryo_cleavage",
@@ -656,13 +632,12 @@
     "provenance_note": "Esquema sintético gerado por IA (Meta AI) para referência pedagógica de embriologia; não é micrografia real e não é usado no treino/validação do motor.",
     "commons": null,
     "provenance": "ai-generated",
-    "generator": "Meta AI",
-    "author": "Meta AI (esquema sintético)",
+    "generator": "Meta AI (esquema didático vectorial, pt-PT)",
+    "author": "Meta AI (esquema didático — não é micrografia)",
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "split": "excluded",
-    "sha1": "95e34ff80c9e5f80d6240b3f49e687a9895e9f68",
-    "match": "original"
+    "local_sha1": "95e34ff80c9e5f80d6240b3f49e687a9895e9f68"
   },
   {
     "key": "embryo_gastrulation",
@@ -673,13 +648,12 @@
     "provenance_note": "Esquema sintético gerado por IA (Meta AI) para referência pedagógica de embriologia; não é micrografia real e não é usado no treino/validação do motor.",
     "commons": null,
     "provenance": "ai-generated",
-    "generator": "Meta AI",
-    "author": "Meta AI (esquema sintético)",
+    "generator": "Meta AI (esquema didático vectorial, pt-PT)",
+    "author": "Meta AI (esquema didático — não é micrografia)",
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "split": "excluded",
-    "sha1": "f6f102c4ae69cd6d0459dc8f0b8028107d2dfd91",
-    "match": "original"
+    "local_sha1": "f6f102c4ae69cd6d0459dc8f0b8028107d2dfd91"
   },
   {
     "key": "embryo_week4",
@@ -690,12 +664,11 @@
     "provenance_note": "Esquema sintético gerado por IA (Meta AI) para referência pedagógica de embriologia; não é micrografia real e não é usado no treino/validação do motor.",
     "commons": null,
     "provenance": "ai-generated",
-    "generator": "Meta AI",
-    "author": "Meta AI (esquema sintético)",
+    "generator": "Meta AI (esquema didático vectorial, pt-PT)",
+    "author": "Meta AI (esquema didático — não é micrografia)",
     "license": "ver termos de utilização do Meta AI",
     "source_url": "",
     "split": "excluded",
-    "sha1": "5685eaffe63f078ab80cdf81f402f36c324f7d2e",
-    "match": "original"
+    "local_sha1": "5685eaffe63f078ab80cdf81f402f36c324f7d2e"
   }
 ]

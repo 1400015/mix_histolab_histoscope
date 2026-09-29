@@ -232,3 +232,9 @@ Ressalvas pedagógicas reconhecidas mas **não alteradas** (decisão de conteúd
 11. **`vite.config.ts`** — `__dirname` → `import.meta.dirname` (aviso Vite 8).
 
 **Alegação não confirmada:** `numpy==2.5.3` resolve e instala normalmente a partir do PyPI neste ambiente (`pip index versions numpy` lista 2.5.3 como latest). O ponto 1 da revisão não se reproduziu e não foi alterado. **Nota:** os 45 testes pytest passam localmente (45/45), mas o job CI do motor nunca validou automaticamente nada antes desta sessão.
+
+## Terceira revisão — lâminas sintéticas (A/B/C)
+
+12. **A — Motor a classificar lâminas sintéticas sem aviso** — as 27 lâminas `ai-generated` usam 10 valores `tissue` fora das 9 classes do classificador; o `handleSelectGallerySlide` metia o veredicto do motor no painel sem distinguir proveniência (ex.: hipófise sintética → «conjuntivo 62%»). Agora o `App.tsx` transporta `slideProvenance` e o `AnalysisPanel` mostra um banner fucsia: «Imagem sintética gerada por IA — classificação automática não aplicável», com a descrição de referência como fonte de estudo. O state repõe a `verified` nos outros caminhos (slide de referência, upload, análise guardada) para não vazar entre lâminas.
+13. **B — `match: "original"` indevido nas sintéticas** — as 27 tinham `match`/`sha1` preenchidos quando o hash era apenas integridade local, sem comparação com o Commons (falso por construção). Removidos; introduzido `local_sha1` para integridade do ficheiro. `sha1`/`commons_sha1`/`match` ficam reservados às 15 verificadas.
+14. **C — Esquemas de embriologia** — os 3 esquemas pt-PT são do Meta AI mas são esquemas didáticos, não micrografias geradas; `generator`/`author` clarificam agora a natureza («esquema didático — não é micrografia»).
