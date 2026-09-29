@@ -1,8 +1,14 @@
 import type { HistologyAnalysis } from '../types/histology';
+import { deleteThumbnail } from './thumbnailStore';
 
 /** B2: histórico persistente de análises (localStorage). As análises
  * desapareciam no refresh — agora cada lâmina analisada fica guardada e pode
- * ser reaberta a partir do atlas. */
+ * ser reaberta a partir do atlas.
+ *
+ * 2026-09-29: as miniaturas saíram daqui para o IndexedDB
+ * (`utils/thumbnailStore`). Data URLs no localStorage esgotavam a quota de
+ * ~5 MB e forçavam a apagar todas as miniaturas; o campo `thumbnail` fica só
+ * por compatibilidade com entradas antigas já gravadas. */
 
 export interface StoredAnalysis {
   id: string;
@@ -13,7 +19,7 @@ export interface StoredAnalysis {
   confidence: string;
   mode: string;
   date: string;
-  // Thumbnail em data URL, reduzida para caber no quota do localStorage.
+  /** Legado: entradas antigas trazem a miniatura embutida em data URL. */
   thumbnail?: string;
   analysis: HistologyAnalysis;
   localFeatures?: Record<string, number> | null;
@@ -23,8 +29,9 @@ const KEY = 'histoscope_analysis_history';
 const MAX_ITEMS = 30;
 const THUMB_MAX = 320;
 
-/** Reduz uma imagem (data URL) para uma thumbnail pequena — a quota do
- * localStorage (~5MB) não aguenta imagens a resolução completa. */
+/** Reduz uma imagem (data URL) para uma thumbnail pequena — o IndexedDB não
+ * tem o limite do localStorage, mas miniaturas grandes tornam o histórico
+ * lento a desenhar. */
 export function makeThumbnail(dataUrl: string, max = THUMB_MAX): Promise<string | undefined> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -62,26 +69,22 @@ export function saveAnalysis(entry: StoredAnalysis): void {
   try {
     const items = listAnalyses().filter((i) => i.id !== entry.id);
     items.unshift(entry);
-    while (items.length > MAX_ITEMS) items.pop();
+    while (items.length > MAX_ITEMS) {
+      const dropped = items.pop();
+      // A entrada sai do histórico; a miniatura não pode ficar órfã.
+      if (dropped) void deleteThumbnail(dropped.id);
+    }
     localStorage.setItem(KEY, JSON.stringify(items));
   } catch (e) {
-    // Quota excedida: remove as thumbnails antigas e tenta outra vez.
-    try {
-      const trimmed = listAnalyses()
-        .slice(0, 10)
-        .map((i) => ({ ...i, thumbnail: undefined }));
-      trimmed.unshift({ ...entry, thumbnail: undefined });
-      localStorage.setItem(KEY, JSON.stringify(trimmed));
-    } catch {
-      console.warn('Histórico de análises: falha ao persistir (quota).', e);
-    }
+    console.warn('Histórico de análises: falha ao persistir.', e);
   }
 }
 
 export function deleteAnalysis(id: string): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(listAnalyses().filter((i) => i.id !== id)));
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.warn('Histórico de análises: falha ao apagar.', e);
   }
+  void deleteThumbnail(id);
 }

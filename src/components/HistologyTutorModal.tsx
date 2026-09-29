@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { readApiError } from '../utils/apiError';
+import { useDialogFocus } from '../utils/dialogFocus';
 import {
   X,
   Send,
@@ -34,15 +36,9 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
   imageBase64,
   localFeatures,
 }) => {
-  // A11y: fechar com Escape (melhoria 2026-09-28).
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // A11y: foco inicial no painel, Escape fecha e o foco volta ao botão de
+  // origem (utils/dialogFocus).
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -100,7 +96,7 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao comunicar com o modelo Gemini.');
+        throw await readApiError(response, 'Falha ao comunicar com o modelo Gemini.');
       }
 
       const data = await response.json();
@@ -154,7 +150,14 @@ export const HistologyTutorModal: React.FC<HistologyTutorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tutor de histologia"
+        tabIndex={-1}
+        className="relative w-full max-w-lg h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200 outline-none"
+      >
         {/* Header */}
         <div className="p-4 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

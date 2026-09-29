@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Upload,
   Image as ImageIcon,
@@ -7,7 +7,9 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { HistologyAnalysis } from '../types/histology';
+import { HistologyAnalysis, UiLocalAnalysis } from '../types/histology';
+import { readApiError } from '../utils/apiError';
+import { useDialogFocus } from '../utils/dialogFocus';
 
 interface ImageUploaderModalProps {
   isOpen: boolean;
@@ -19,7 +21,7 @@ interface ImageUploaderModalProps {
     staining: string;
     // Análise local crua do motor CV (presente no modo offline) — é o que
     // o endpoint de quiz offline precisa (contrato 2026-09-28).
-    localAnalysis?: Record<string, unknown> | null;
+    localAnalysis?: UiLocalAnalysis | null;
   }) => void;
 }
 
@@ -31,15 +33,9 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
   // Melhoria 2026-09-28: seletor de modo de análise (auto | local | gemini).
   const [analysisMode, setAnalysisMode] = useState<'auto' | 'local' | 'gemini'>('auto');
 
-  // A11y: fechar com Escape.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // A11y: foco inicial no painel, Escape fecha e o foco volta ao botão de
+  // origem (utils/dialogFocus — substitui a cópia local do listener).
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   const [dragOver, setDragOver] = useState<boolean>(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -132,16 +128,15 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
       });
 
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.details || errData.error || 'Erro na análise com a IA.');
+        throw await readApiError(response, 'Erro na análise com a IA.');
       }
 
-      const result: HistologyAnalysis = await response.json();
+      const result: HistologyAnalysis & { localAnalysis?: UiLocalAnalysis | null } = await response.json();
 
       onAnalysisComplete({
         imageBase64: imagePreview,
         analysis: result,
-        localAnalysis: (result as { localAnalysis?: Record<string, unknown> }).localAnalysis ?? null,
+        localAnalysis: result.localAnalysis ?? null,
         title: result.tissueClassification.primaryTissue || 'Lâmina Analisada por IA',
         staining: result.tissueClassification.stainType || stainHint,
       });
@@ -167,7 +162,14 @@ export const ImageUploaderModal: React.FC<ImageUploaderModalProps> = ({
       onPaste={handlePaste}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Analisar nova lâmina histológica"
+        tabIndex={-1}
+        className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200 outline-none"
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2.5">

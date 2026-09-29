@@ -1,4 +1,17 @@
+import type { LocalAnalysis } from '../../engine/engine_bridge';
+
 export type TissueFamily = 'Epitelial' | 'Conjuntivo' | 'Muscular' | 'Nervoso' | 'Órgãos e Sistemas' | 'Sangue e Linfóide';
+
+/**
+ * O que a UI guarda da análise do motor local (2026-09-29).
+ *
+ * `features` é obrigatório (é o que o relatório e o tutor offline usam) e o
+ * resto é opcional: uma análise reaberta do histórico traz só as métricas.
+ * A fonte dos tipos é o contrato do motor (`engine/engine_bridge.ts`) — antes
+ * a UI repetia estas formas em `Record<string, unknown>` com casts espalhados,
+ * e renomear um campo do motor obrigava a caçar strings em cinco ficheiros.
+ */
+export type UiLocalAnalysis = Partial<LocalAnalysis> & Pick<LocalAnalysis, 'features'>;
 
 export interface PinpointCoordinate {
   x: number; // 0 - 100 percentage

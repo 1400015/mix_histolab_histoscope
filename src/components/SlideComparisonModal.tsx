@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { ComparisonResult } from '../types/histology';
 import { REFERENCE_SLIDES } from '../data/referenceSlides';
+import { describeError, readApiError } from '../utils/apiError';
+import { useDialogFocus } from '../utils/dialogFocus';
 
 interface SlideComparisonModalProps {
   isOpen: boolean;
@@ -41,15 +43,9 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
   galleryKey,
   magnification,
 }) => {
-  // A11y: fechar com Escape (melhoria 2026-09-28).
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // A11y: foco inicial no painel, Escape fecha e o foco volta ao botão de
+  // origem (utils/dialogFocus).
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   const [selectedRefId, setSelectedRefId] = useState<string>(
     REFERENCE_SLIDES[0].id === primarySlide.id && REFERENCE_SLIDES.length > 1
@@ -123,14 +119,13 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
         }),
       });
       if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error || `HTTP ${response.status}`);
+        throw await readApiError(response, 'Falha na comparação offline do motor local.');
       }
       const data: ComparisonResult = await response.json();
       setLocalResult(data);
       setActiveTab('analysis');
     } catch (err: any) {
-      setLocalError(err?.name === 'TimeoutError' ? 'A comparação excedeu o tempo limite.' : err.message || 'Erro no motor local.');
+      setLocalError(describeError(err, 'Erro no motor local.'));
     } finally {
       setIsLocalComparing(false);
     }
@@ -174,7 +169,7 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao processar a comparação com a IA.');
+        throw await readApiError(response, 'Falha ao processar a comparação com a IA.');
       }
 
       const data: ComparisonResult = await response.json();
@@ -190,7 +185,14 @@ export const SlideComparisonModal: React.FC<SlideComparisonModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-7xl h-[94vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Comparação de lâminas lado a lado"
+        tabIndex={-1}
+        className="relative w-full max-w-7xl h-[94vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-200 outline-none"
+      >
         {/* Comparison Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3.5 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-3">

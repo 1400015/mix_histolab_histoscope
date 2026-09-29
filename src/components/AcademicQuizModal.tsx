@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { AcademicQuizQuestion, QuizAttempt } from '../types/histology';
+import React, { useState } from 'react';
+import { AcademicQuizQuestion, QuizAttempt, UiLocalAnalysis } from '../types/histology';
 import { recordSRSAnswer, prioritizeQuestions, questionKey } from '../utils/spacedRepetition';
+import { readApiError } from '../utils/apiError';
+import { useDialogFocus } from '../utils/dialogFocus';
 import {
   X,
   Sparkles,
@@ -25,7 +27,7 @@ interface AcademicQuizModalProps {
   imageBase64?: string;
   // Análise local crua (motor CV) — obriga o quiz offline a funcionar
   // (correcção 2026-09-28: o endpoint exigia analysis que nunca era enviado).
-  localAnalysis?: Record<string, unknown> | null;
+  localAnalysis?: UiLocalAnalysis | null;
   onQuestionsUpdated?: (newQuestions: AcademicQuizQuestion[]) => void;
   onOpenProgressDashboard?: () => void;
 }
@@ -40,15 +42,9 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
   onQuestionsUpdated,
   onOpenProgressDashboard,
 }) => {
-  // A11y: fechar com Escape (melhoria 2026-09-28).
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // A11y: foco inicial no painel, Escape fecha e o foco volta ao botão de
+  // origem (utils/dialogFocus).
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   const [questions, setQuestions] = useState<AcademicQuizQuestion[]>(initialQuestions);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -234,10 +230,9 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
       });
 
       if (!response.ok) {
-        // Melhoria 2026-09-28: mostrar a razão específica do servidor (ex.:
-        // 422 análise indeterminada) em vez de uma mensagem genérica.
-        const errBody = await response.json().catch(() => null);
-        throw new Error(errBody?.error || 'Não foi possível gerar novas perguntas com a IA.');
+        // Mostra a razão específica do servidor (422 análise indeterminada,
+        // 429 rate limit, 400 análise local em falta) em vez de "HTTP 4xx".
+        throw await readApiError(response, 'Não foi possível gerar novas perguntas com a IA.');
       }
 
       const data = await response.json();
@@ -268,7 +263,14 @@ export const AcademicQuizModal: React.FC<AcademicQuizModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quiz académico de histologia"
+        tabIndex={-1}
+        className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-200 outline-none"
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2.5">

@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
@@ -29,6 +29,22 @@ import {
   chatSystemInstruction,
   resolveChatModel,
 } from './server/gemini';
+import {
+  EngineBusyError,
+  JSON_BODY_LIMIT,
+  aiRateLimit,
+  apiRateLimit,
+  engineLoad,
+  runEngineTask,
+  securityHeaders,
+} from './server/guards';
+import {
+  readOptionalInt,
+  readOptionalString,
+  validateChatMessages,
+  validateIncomingImage,
+  validateLocalAnalysis,
+} from './server/validate';
 
 dotenv.config();
 
@@ -43,9 +59,30 @@ const PROJECT_ROOT = fs.existsSync(path.join(__dirname, 'engine'))
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+/** Erros do parser de corpo (imagem grande, JSON malformado) em JSON legível —
+ * a UI mostra `body.error`, por isso uma página de stack trace não serve. */
+function bodyErrorHandler(err: any, _req: Request, res: Response, next: NextFunction) {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: 'Imagem demasiado grande para o servidor (limite 20 MB). Reduz a resolução ou envia em JPEG.',
+    });
+  }
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({ error: 'Pedido JSON malformado.' });
+  }
+  return next(err);
+}
+
 const app = express();
-app.use(express.json({ limit: '40mb' }));
-app.use(express.urlencoded({ extended: true, limit: '40mb' }));
+// Atrás de um reverse proxy (o do Freebuff/nginx) TRUST_PROXY=1 faz o rate
+// limit usar o IP real do cliente. Desligado por defeito: sem proxy à frente,
+// X-Forwarded-For é inventável e serviria para contornar o limite.
+app.set('trust proxy', process.env.TRUST_PROXY === '1' ? 1 : false);
+app.use(securityHeaders);
+app.use('/api', apiRateLimit());
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: JSON_BODY_LIMIT }));
+app.use(bodyErrorHandler);
 
 // Shared Gemini client utility on the server
 // User-Agent must be set to 'aistudio-build' for telemetry
@@ -65,20 +102,61 @@ const getGenAI = () => {
   });
 };
 
+/**
+ * Lê, valida e resolve o campo de imagem de um pedido:
+ * - ausente/vazio → `{ ok: true, base64: null }` (a imagem é opcional);
+ * - inválido/vazio demais → responde 400 e devolve `{ ok: false }`;
+ * - `gallery:<key>` desconhecida → responde 404;
+ * - válido → base64 pronto para o Gemini ou para o motor local.
+ * Antes destas verificações, o valor cru ia para o Gemini e para um ficheiro
+ * temporário escrito pelo motor.
+ */
+function takeImageField(
+  raw: unknown,
+  res: Response,
+  field = 'imageBase64',
+): { ok: true; base64: string | null } | { ok: false } {
+  if (raw === undefined || raw === null || raw === '') return { ok: true, base64: null };
+  const checked = validateIncomingImage(raw, { field });
+  if (!checked.ok) {
+    res.status(400).json({ error: checked.error });
+    return { ok: false };
+  }
+  if (!checked.value.startsWith('gallery:')) return { ok: true, base64: checked.value };
+  const key = checked.value.slice('gallery:'.length);
+  if (!GALLERY_KEYS.has(key)) {
+    res.status(404).json({ error: 'Lâmina da amostra desconhecida na galeria.' });
+    return { ok: false };
+  }
+  return {
+    ok: true,
+    base64: fs
+      .readFileSync(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${key}.jpg`))
+      .toString('base64'),
+  };
+}
+
 // API Route: Histological Image Analysis
-app.post('/api/analyze-histology', async (req: Request, res: Response) => {
+app.post('/api/analyze-histology', aiRateLimit(), async (req: Request, res: Response) => {
   try {
     const { imageBase64, mimeType = 'image/jpeg', tissueHint, stainHint, customInstructions, mode = 'auto', magnification } = req.body;
 
-    if (!imageBase64) {
+    const image = takeImageField(imageBase64, res);
+    if (!image.ok) return;
+    if (!image.base64) {
       return res.status(400).json({ error: 'Nenhuma imagem foi fornecida para análise.' });
     }
 
     // Local deterministic CV analysis (always attempted; free, offline, grounds Gemini)
     let localAnalysis: LocalAnalysis | null = null;
     try {
-      localAnalysis = await localAnalyzeBase64(imageBase64, magnification);
+      localAnalysis = await runEngineTask(() => localAnalyzeBase64(image.base64 as string, magnification));
     } catch (e: any) {
+      // Fila do motor cheia não é "motor indisponível": é saturação, e o 503
+      // diz ao cliente para tentar de novo em vez de um 500 enganador.
+      if (e instanceof EngineBusyError) {
+        return res.status(503).json({ error: e.message, retryAfterSeconds: 5 });
+      }
       console.error('Motor local indisponível:', e.message);
     }
     if (mode === 'local') {
@@ -96,8 +174,7 @@ app.post('/api/analyze-histology', async (req: Request, res: Response) => {
     }
     const ai = getGenAI();
 
-    // Clean base64 data if it contains a data URL prefix
-    const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+    const cleanBase64 = image.base64;
 
     const response = await ai.models.generateContent({
       model: MODEL_MAIN,
@@ -136,12 +213,18 @@ app.post('/api/analyze-histology', async (req: Request, res: Response) => {
 });
 
 // API Route: Generate Academic Quiz Questions
-app.post('/api/generate-quiz', async (req: Request, res: Response) => {
+app.post('/api/generate-quiz', aiRateLimit(), async (req: Request, res: Response) => {
   try {
-    const { tissueName, difficulty = 'Intermédio', count = 5, specificTopic, imageBase64, mimeType, questionTypes = 'all', analysis } = req.body;
+    const { tissueName, difficulty = 'Intermédio', specificTopic, imageBase64, mimeType, questionTypes = 'all', analysis } = req.body;
+    // Teto de segurança: um `count` arbitrário do cliente ia direto para o prompt.
+    const safeCount = readOptionalInt(req.body.count, 1, 20) ?? 5;
 
     if (!hasGemini()) {
       if (analysis) {
+        const checkedAnalysis = validateLocalAnalysis(analysis);
+        if (!checkedAnalysis.ok) {
+          return res.status(400).json({ error: checkedAnalysis.error });
+        }
         // Contrato 2026-09-28: o frontend passa a enviar a localAnalysis
         // (campo "analysis"); o motor devolve type/answer em TEXTO —
         // mapLocalQuestions traduz para questionType/correctOptionIndex,
@@ -150,13 +233,13 @@ app.post('/api/generate-quiz', async (req: Request, res: Response) => {
           // n=99 = pool completo: o filtro questionTypes tem de aplicar ANTES
           // do corte por count, senão os fill_blanks (últimos do pool) nunca
           // aparecem quando se pede "Apenas Preenchimento de Lacunas".
-          const raw = await localQuestions(analysis as LocalAnalysis, 99, difficulty === 'Iniciação' ? 'easy' : difficulty === 'Avançado' ? 'hard' : 'medium');
+          const raw = await localQuestions(checkedAnalysis.value as unknown as LocalAnalysis, 99, difficulty === 'Iniciação' ? 'easy' : difficulty === 'Avançado' ? 'hard' : 'medium');
           let qs = mapLocalQuestions(raw);
           // Melhoria 2026-09-28: o filtro da UI ("Apenas Escolha Múltipla" /
           // "Apenas Preenchimento de Lacunas") passou a valer também offline.
           if (questionTypes === 'multiple_choice') qs = qs.filter((q) => q.questionType === 'multiple_choice');
           if (questionTypes === 'fill_blank') qs = qs.filter((q) => q.questionType === 'fill_blank');
-          qs = qs.slice(0, count);
+          qs = qs.slice(0, safeCount);
           if (!qs.length) {
             return res.status(422).json({ error: 'O motor local não tem perguntas desse tipo — escolhe "Mista" ou usa o modo Gemini.' });
           }
@@ -171,17 +254,18 @@ app.post('/api/generate-quiz', async (req: Request, res: Response) => {
     const ai = getGenAI();
 
     const parts: any[] = [];
-    if (imageBase64) {
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+    const image = takeImageField(imageBase64, res);
+    if (!image.ok) return;
+    if (image.base64) {
       parts.push({
         inlineData: {
           mimeType: mimeType || 'image/jpeg',
-          data: cleanBase64,
+          data: image.base64,
         },
       });
     }
 
-    parts.push({ text: buildQuizPrompt({ count, tissueName, difficulty, specificTopic, questionTypes }) });
+    parts.push({ text: buildQuizPrompt({ count: safeCount, tissueName, difficulty, specificTopic, questionTypes }) });
 
     const response = await ai.models.generateContent({
       model: MODEL_MAIN,
@@ -217,21 +301,25 @@ app.post('/api/compare-local', async (req: Request, res: Response) => {
     if (!galleryKey || !GALLERY_KEYS.has(galleryKey)) {
       return res.status(404).json({ error: 'Lâmina de referência desconhecida na galeria.' });
     }
+    const image = validateIncomingImage(imageBase64);
+    if (!image.ok) {
+      return res.status(400).json({ error: image.error });
+    }
     // imageBase64 pode ser "gallery:<key>" quando a amostra em estudo é ela
     // própria uma lâmina da galeria real (não há base64 no cliente nesse caso).
     // Correção 2026-09-29: a key também é validada contra a galeria — antes,
     // "gallery:../../foo" compunha um caminho fora de static/gallery.
-    const primaryGalleryKey = imageBase64.startsWith('gallery:')
-      ? imageBase64.slice('gallery:'.length)
+    const primaryGalleryKey = image.value.startsWith('gallery:')
+      ? image.value.slice('gallery:'.length)
       : null;
     if (primaryGalleryKey && !GALLERY_KEYS.has(primaryGalleryKey)) {
       return res.status(404).json({ error: 'Lâmina da amostra desconhecida na galeria.' });
     }
     const primary = primaryGalleryKey
-      ? await localAnalyze(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${primaryGalleryKey}.jpg`))
-      : await localAnalyzeBase64(imageBase64, magnification);
+      ? await runEngineTask(() => localAnalyze(path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${primaryGalleryKey}.jpg`)))
+      : await runEngineTask(() => localAnalyzeBase64(image.value, magnification));
     const refPath = path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${galleryKey}.jpg`);
-    const reference = await localAnalyze(refPath);
+    const reference = await runEngineTask(() => localAnalyze(refPath));
     const result = buildLocalComparison(
       primary,
       reference,
@@ -240,6 +328,9 @@ app.post('/api/compare-local', async (req: Request, res: Response) => {
     );
     return res.json({ ...result, mode: 'local' });
   } catch (error: any) {
+    if (error instanceof EngineBusyError) {
+      return res.status(503).json({ error: error.message, retryAfterSeconds: 5 });
+    }
     console.error('Erro na comparação offline:', error);
     return res.status(500).json({
       error: 'Falha na comparação offline do motor local.',
@@ -248,7 +339,7 @@ app.post('/api/compare-local', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/api/compare-slides', async (req: Request, res: Response) => {
+app.post('/api/compare-slides', aiRateLimit(), async (req: Request, res: Response) => {
   try {
     const { primarySlide, referenceSlide } = req.body;
 
@@ -262,12 +353,13 @@ app.post('/api/compare-slides', async (req: Request, res: Response) => {
     const ai = getGenAI();
     const parts: any[] = [];
 
-    if (primarySlide.imageBase64) {
-      const cleanBase64 = primarySlide.imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+    const image = takeImageField(primarySlide.imageBase64, res, 'primarySlide.imageBase64');
+    if (!image.ok) return;
+    if (image.base64) {
       parts.push({
         inlineData: {
           mimeType: 'image/jpeg',
-          data: cleanBase64,
+          data: image.base64,
         },
       });
     }
@@ -296,7 +388,7 @@ app.post('/api/compare-slides', async (req: Request, res: Response) => {
 });
 
 // API Route: Multi-Turn Gemini Histopathology Chatbot
-app.post('/api/chat', async (req: Request, res: Response) => {
+app.post('/api/chat', aiRateLimit(), async (req: Request, res: Response) => {
   try {
     const {
       messages,
@@ -308,12 +400,14 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       rolePersona = 'pathologist',
     } = req.body;
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Nenhuma mensagem foi fornecida.' });
+    const checkedMessages = validateChatMessages(messages);
+    if (!checkedMessages.ok) {
+      return res.status(400).json({ error: checkedMessages.error });
     }
+    const turns = checkedMessages.value;
 
     if (!hasGemini()) {
-      const last = messages[messages.length - 1];
+      const last = turns[turns.length - 1];
       // C3: passa as métricas reais da lâmina ao tutor offline — respostas
       // com números concretos em vez de respostas genéricas sem contexto.
       const reply = await localChat(last.text || last.content || '', tissueContext, localFeatures);
@@ -324,16 +418,18 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
     const systemInstruction = chatSystemInstruction(tissueContext, rolePersona);
 
+    const image = takeImageField(imageBase64, res);
+    if (!image.ok) return;
+
     // Map conversation turns to Gemini API format
-    const contents = messages.map((m: any, index: number) => {
+    const contents = turns.map((m, index: number) => {
       const parts: any[] = [];
       // Attach image to the first message if provided
-      if (index === 0 && imageBase64) {
-        const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+      if (index === 0 && image.base64) {
         parts.push({
           inlineData: {
             mimeType: mimeType || 'image/jpeg',
-            data: cleanBase64,
+            data: image.base64,
           },
         });
       }
@@ -369,9 +465,11 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 
 // API Route: Histology Tutor Consultation (usado por integrações externas;
 // a UI do tutor fala com /api/chat, que tem fallback offline)
-app.post('/api/ask-tutor', async (req: Request, res: Response) => {
+app.post('/api/ask-tutor', aiRateLimit(), async (req: Request, res: Response) => {
   try {
-    const { question, tissueContext, imageBase64, mimeType } = req.body;
+    const { imageBase64, mimeType } = req.body;
+    const question = readOptionalString(req.body.question, 4_000);
+    const tissueContext = readOptionalString(req.body.tissueContext, 500);
 
     if (!question) {
       return res.status(400).json({ error: 'Pergunta não informada.' });
@@ -380,15 +478,17 @@ app.post('/api/ask-tutor', async (req: Request, res: Response) => {
       return res.status(501).json({ error: 'Tutor Gemini indisponível: falta GEMINI_API_KEY. Usa /api/chat, que tem tutor offline.' });
     }
 
+    const image = takeImageField(imageBase64, res);
+    if (!image.ok) return;
+
     const ai = getGenAI();
     const parts: any[] = [];
 
-    if (imageBase64) {
-      const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+    if (image.base64) {
       parts.push({
         inlineData: {
           mimeType: mimeType || 'image/jpeg',
-          data: cleanBase64,
+          data: image.base64,
         },
       });
     }
@@ -454,16 +554,19 @@ app.get('/api/gallery/:key/analysis', async (req: Request, res: Response) => {
     // PROJECT_ROOT (não __dirname): em produção o server corre de dist/ e os
     // assets do motor ficam na raiz (bug de caminhos 2026-09-28).
     const imgPath = path.join(PROJECT_ROOT, 'engine', 'static', 'gallery', `${req.params.key}.jpg`);
-    const analysis = await localAnalyze(imgPath);
+    const analysis = await runEngineTask(() => localAnalyze(imgPath));
     res.json({ ...localAnalysisToHistology(analysis), mode: 'local', localAnalysis: analysis });
   } catch (e: any) {
+    if (e instanceof EngineBusyError) {
+      return res.status(503).json({ error: e.message, retryAfterSeconds: 5 });
+    }
     res.status(500).json({ error: 'Análise local indisponível: ' + e.message });
   }
 });
 
 // API Route: Runtime capabilities (frontend can adapt its UI)
 app.get('/api/status', (_req: Request, res: Response) => {
-  res.json({ gemini: hasGemini() });
+  res.json({ gemini: hasGemini(), engine: engineLoad() });
 });
 
 // Mount Vite or static server
@@ -494,4 +597,21 @@ async function startServer() {
   });
 }
 
-startServer();
+// O servidor só arranca quando este ficheiro é o ponto de entrada (`tsx
+// server.ts` / `node dist/server.js`). Ao ser importado — pelos testes — fica
+// só o `app`, sem abrir portas nem criar o servidor de desenvolvimento do Vite.
+const isMainModule = (() => {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return path.resolve(entry) === __filename;
+  } catch {
+    return false;
+  }
+})();
+
+if (isMainModule) {
+  void startServer();
+}
+
+export { app, startServer };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Microscope,
   Upload,
@@ -16,6 +16,7 @@ import {
   HistologyAnalysis,
   CellularConstituent,
   UserAnnotation,
+  UiLocalAnalysis,
 } from './types/histology';
 import { MicroscopeViewer } from './components/MicroscopeViewer';
 import { detectLang, setLang, t, type Lang } from './i18n';
@@ -24,6 +25,8 @@ import { AnnotationSystem } from './components/AnnotationSystem';
 import { SlideComparisonModal } from './components/SlideComparisonModal';
 import { buildAnalysisReport, downloadReport, printReport } from './utils/report';
 import { saveAnalysis, makeThumbnail, type StoredAnalysis } from './utils/analysisHistory';
+import { putThumbnail } from './utils/thumbnailStore';
+import { loadAnnotations, saveAnnotations } from './utils/annotations';
 import { AcademicQuizModal } from './components/AcademicQuizModal';
 import { ReferenceAtlasDrawer } from './components/ReferenceAtlasDrawer';
 import type { GalleryItem } from './components/ReferenceAtlasDrawer';
@@ -45,7 +48,7 @@ export default function App() {
   // Análise local crua (motor CV) — é o que o endpoint de quiz offline precisa
   // (contrato 2026-09-28: antes o frontend nunca enviava analysis e o quiz
   // offline era inalcançável).
-  const [currentLocalAnalysis, setCurrentLocalAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [currentLocalAnalysis, setCurrentLocalAnalysis] = useState<UiLocalAnalysis | null>(null);
   // Overlay da segmentação de núcleos (motor local) — mostra "o que o
   // computador viu" por cima da lâmina (melhoria 2026-09-28).
   const [overlaySrc, setOverlaySrc] = useState<string | undefined>(undefined);
@@ -66,6 +69,13 @@ export default function App() {
   const [isTutorOpen, setIsTutorOpen] = useState<boolean>(false);
   // C4: i18n pt/en — idioma detetado/saved em localStorage.
   const [lang, setLangState] = useState<Lang>(() => detectLang());
+
+  // As anotações pertencem à lâmina ativa e o App é o único dono do estado e da
+  // persistência (utils/annotations) — antes o AnnotationSystem também gravava
+  // na mesma chave, a partir do seu próprio snapshot.
+  useEffect(() => {
+    setUserAnnotations(loadAnnotations(activeSlideId));
+  }, [activeSlideId]);
 
   // Switch to reference slide
   const handleSelectReferenceSlide = (slide: ReferenceTissueSlide) => {
@@ -90,7 +100,7 @@ export default function App() {
   // local mapeada pelo endpoint /api/gallery/:key/analysis.
   const handleSelectGallerySlide = (
     item: GalleryItem,
-    mapped: HistologyAnalysis & { localAnalysis?: Record<string, unknown> | null },
+    mapped: HistologyAnalysis & { localAnalysis?: UiLocalAnalysis | null },
   ) => {
     setActiveSlideId(`gallery_${item.key}`);
     setSlideTitle(item.title);
@@ -100,7 +110,7 @@ export default function App() {
     setSlideDescription(item.description);
     setCurrentAnalysis(mapped);
     setCurrentLocalAnalysis(mapped.localAnalysis ?? null);
-    const ov = (mapped.localAnalysis as { overlay_jpg_b64?: string } | null)?.overlay_jpg_b64;
+    const ov = mapped.localAnalysis?.overlay_jpg_b64;
     setOverlaySrc(ov ? `data:image/jpeg;base64,${ov}` : undefined);
     setUserAnnotations([]);
     setSelectedConstituent(null);
@@ -115,7 +125,7 @@ export default function App() {
     analysis: HistologyAnalysis;
     title: string;
     staining: string;
-    localAnalysis?: Record<string, unknown> | null;
+    localAnalysis?: UiLocalAnalysis | null;
   }) => {
     const uploadId = `upload_${Date.now()}`;
     setActiveSlideId(uploadId);
@@ -126,7 +136,7 @@ export default function App() {
     setSlideDescription(result.analysis.tissueClassification.generalDescription);
     setCurrentAnalysis(result.analysis);
     setCurrentLocalAnalysis(result.localAnalysis ?? null);
-    const ovRaw = (result.localAnalysis as { overlay_jpg_b64?: string } | null)?.overlay_jpg_b64;
+    const ovRaw = result.localAnalysis?.overlay_jpg_b64;
     setOverlaySrc(ovRaw ? `data:image/jpeg;base64,${ovRaw}` : undefined);
     // Nova lâmina carregada: anotações da anterior não se aplicam.
     setUserAnnotations([]);
@@ -145,25 +155,28 @@ export default function App() {
         confidence: result.analysis.tissueClassification.confidenceLevel,
         mode: (result.analysis as { mode?: string }).mode || 'local',
         date: new Date().toISOString(),
-        thumbnail: thumb,
         analysis: result.analysis,
-        localFeatures:
-          (result.localAnalysis as { features?: Record<string, number> } | null)?.features ?? null,
+        localFeatures: result.localAnalysis?.features ?? null,
       };
       saveAnalysis(entry);
+      // A miniatura vive no IndexedDB: no localStorage enchia a quota de 5 MB.
+      if (thumb) void putThumbnail(uploadId, thumb);
     });
   };
 
   const handleAddAnnotation = (ann: UserAnnotation) => {
-    setUserAnnotations((prev) => [...prev, ann]);
-    try {
-      localStorage.setItem(
-        `histoscope_annotations_${activeSlideId}`,
-        JSON.stringify([...userAnnotations, ann])
-      );
-    } catch (e) {
-      console.error(e);
-    }
+    // A gravação parte do estado anterior (update funcional), não do snapshot
+    // deste render: era assim que a caixa anterior se perdia na chave.
+    setUserAnnotations((prev) => {
+      const next = [...prev, ann];
+      saveAnnotations(activeSlideId, next);
+      return next;
+    });
+  };
+
+  const handleAnnotationsChange = (annotations: UserAnnotation[]) => {
+    setUserAnnotations(annotations);
+    saveAnnotations(activeSlideId, annotations);
   };
 
   return (
@@ -275,7 +288,7 @@ export default function App() {
             title={slideTitle}
             staining={slideStaining}
             overlaySrc={overlaySrc}
-            nuclei={(currentLocalAnalysis as { nuclei?: { x: number; y: number; area: number; perimeter: number; circularity: number; elongation: number }[] } | null)?.nuclei ?? undefined}
+            nuclei={currentLocalAnalysis?.nuclei ?? undefined}
             magnification={currentAnalysis.tissueClassification.magnificationEstimate || '400x'}
             constituents={currentAnalysis.cellularConstituents}
             selectedConstituent={selectedConstituent}
@@ -340,8 +353,7 @@ export default function App() {
                     staining: slideStaining,
                     analysis: currentAnalysis,
                     mode: (currentAnalysis as { mode?: string }).mode,
-                    localFeatures:
-                      (currentLocalAnalysis as { features?: Record<string, number> } | null)?.features ?? null,
+                    localFeatures: currentLocalAnalysis?.features ?? null,
                     annotations: userAnnotations,
                   });
                   downloadReport(md, `relatorio_${slideTitle.replace(/\s+/g, '_').toLowerCase()}.md`);
@@ -352,8 +364,7 @@ export default function App() {
                     staining: slideStaining,
                     analysis: currentAnalysis,
                     mode: (currentAnalysis as { mode?: string }).mode,
-                    localFeatures:
-                      (currentLocalAnalysis as { features?: Record<string, number> } | null)?.features ?? null,
+                    localFeatures: currentLocalAnalysis?.features ?? null,
                     annotations: userAnnotations,
                   });
                   printReport(md, slideTitle);
@@ -369,7 +380,7 @@ export default function App() {
                 isDrawingMode={isDrawingMode}
                 onToggleDrawingMode={(active) => setIsDrawingMode(active)}
                 annotations={userAnnotations}
-                onAnnotationsChange={(anns) => setUserAnnotations(anns)}
+                onAnnotationsChange={handleAnnotationsChange}
                 selectedAnnotationId={selectedAnnotationId}
                 onSelectAnnotation={(id) => setSelectedAnnotationId(id)}
               />
@@ -462,9 +473,7 @@ export default function App() {
         onClose={() => setIsTutorOpen(false)}
         tissueContext={`${slideTitle} - ${currentAnalysis.tissueClassification.primaryTissue} (${slideStaining})`}
         imageBase64={slideImageSrc}
-        localFeatures={
-          (currentLocalAnalysis as { features?: Record<string, number> } | null)?.features ?? undefined
-        }
+        localFeatures={currentLocalAnalysis?.features ?? undefined}
       />
     </div>
   );

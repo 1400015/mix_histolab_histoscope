@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   X,
   TrendingUp,
@@ -7,6 +7,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { QuizAttempt, UserProgress } from '../types/histology';
+import { useDialogFocus } from '../utils/dialogFocus';
 
 interface ProgressDashboardModalProps {
   isOpen: boolean;
@@ -18,17 +19,10 @@ export const ProgressDashboardModal: React.FC<ProgressDashboardModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // A11y: fechar com Escape (melhoria 2026-09-28; guarda isOpen adicionada
-  // 2026-09-29 — era o único modal que registava o listener sempre, com o
-  // modal fechado e a re-subscrever em cada render do pai).
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // A11y: foco inicial no painel, Escape fecha e o foco volta ao botão de
+  // origem (utils/dialogFocus substitui a cópia local do listener, que era a
+  // única a registar-se com o modal fechado e a re-subscrever por render).
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -78,7 +72,14 @@ export const ProgressDashboardModal: React.FC<ProgressDashboardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] text-slate-200">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Painel de progresso do estudante"
+        tabIndex={-1}
+        className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] text-slate-200 outline-none"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2.5">

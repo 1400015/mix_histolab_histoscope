@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ReferenceTissueSlide, HistologyAnalysis } from '../types/histology';
+import { ReferenceTissueSlide, HistologyAnalysis, UiLocalAnalysis } from '../types/histology';
 import { REFERENCE_SLIDES } from '../data/referenceSlides';
 import { listAnalyses, deleteAnalysis, type StoredAnalysis } from '../utils/analysisHistory';
+import { getThumbnails } from '../utils/thumbnailStore';
+import { describeError, readApiError } from '../utils/apiError';
+import { useDialogFocus } from '../utils/dialogFocus';
 import {
   X,
   Search,
@@ -29,7 +32,7 @@ export interface GalleryItem {
 /** Análise mapeada devolvida por GET /api/gallery/:key/analysis. */
 export type GalleryAnalysis = HistologyAnalysis & {
   mode?: string;
-  localAnalysis?: Record<string, unknown> | null;
+  localAnalysis?: UiLocalAnalysis | null;
 };
 
 interface ReferenceAtlasDrawerProps {
@@ -60,26 +63,26 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
   // B2: histórico local de análises — recarrega quando o drawer abre.
   const [stored, setStored] = useState<StoredAnalysis[]>([]);
-  useEffect(() => {
-    if (isOpen) setStored(listAnalyses());
-  }, [isOpen]);
-
-  // A11y: fechar com Escape.
+  // Miniaturas do histórico: vivem no IndexedDB (2026-09-29); entradas antigas
+  // ainda podem trazer a data URL embutida no localStorage.
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   useEffect(() => {
     if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+    const items = listAnalyses();
+    setStored(items);
+    void getThumbnails(items.filter((i) => !i.thumbnail).map((i) => i.id)).then(setThumbs);
+  }, [isOpen]);
+
+  // A11y: foco inicial no painel, Escape fecha e o foco volta ao botão de
+  // origem (utils/dialogFocus).
+  const dialogRef = useDialogFocus(isOpen, onClose);
 
   // Carrega a galeria quando o drawer abre (uma vez por abertura).
   useEffect(() => {
     if (!isOpen || galleryItems || galleryError) return;
     fetch('/api/gallery', { signal: AbortSignal.timeout(15_000) })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      .then(async (r) => {
+        if (!r.ok) throw await readApiError(r, 'Falha ao carregar a galeria.');
         return r.json();
       })
       .then((d) => setGalleryItems(d.items ?? []))
@@ -91,12 +94,12 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
     setGalleryError(null);
     try {
       const res = await fetch(`/api/gallery/${item.key}/analysis`, { signal: AbortSignal.timeout(120_000) });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(body?.error || `HTTP ${res.status}`);
-      onSelectGallerySlide(item, body as GalleryAnalysis);
+      if (!res.ok) throw await readApiError(res, 'Falha ao analisar a lâmina.');
+      const body = (await res.json()) as GalleryAnalysis;
+      onSelectGallerySlide(item, body);
       onClose();
     } catch (e: any) {
-      setGalleryError(e?.name === 'TimeoutError' ? 'A análise excedeu o tempo limite.' : e.message || 'Falha ao analisar a lâmina.');
+      setGalleryError(describeError(e, 'Falha ao analisar a lâmina.'));
     } finally {
       setLoadingKey(null);
     }
@@ -124,10 +127,12 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Atlas e galeria histológica"
-        className="relative w-full max-w-xl h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200"
+        tabIndex={-1}
+        className="relative w-full max-w-xl h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col text-slate-200 outline-none"
       >
         {/* Drawer Header */}
         <div className="p-5 border-b border-slate-800 bg-slate-900/90 flex items-start justify-between gap-4">
@@ -195,13 +200,15 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
                 </p>
               </div>
             ) : (
-              stored.map((entry) => (
+              stored.map((entry) => {
+                const thumb = entry.thumbnail ?? thumbs[entry.id];
+                return (
                 <div
                   key={entry.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-700 transition-colors"
                 >
-                  {entry.thumbnail ? (
-                    <img src={entry.thumbnail} alt={entry.title} className="w-16 h-16 object-cover rounded-lg border border-slate-800" />
+                  {thumb ? (
+                    <img src={thumb} alt={entry.title} className="w-16 h-16 object-cover rounded-lg border border-slate-800" />
                   ) : (
                     <div className="w-16 h-16 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center">
                       <Microscope className="w-5 h-5 text-slate-600" />
@@ -235,7 +242,8 @@ export const ReferenceAtlasDrawer: React.FC<ReferenceAtlasDrawerProps> = ({
                     </button>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

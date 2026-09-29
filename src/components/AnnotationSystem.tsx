@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserAnnotation } from '../types/histology';
 import {
   Tag,
@@ -61,35 +61,14 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
 }) => {
   const [editingAnnotation, setEditingAnnotation] = useState<UserAnnotation | null>(null);
 
-  // Load saved annotations for this slide from localStorage on mount or slide change
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`histoscope_annotations_${slideId}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          onAnnotationsChange(parsed);
-        }
-      }
-    } catch (e) {
-      console.error('Erro ao carregar anotações locais:', e);
-    }
-  }, [slideId]);
-
-  // Save to localStorage when annotations change
-  const saveAnnotations = (newList: UserAnnotation[]) => {
-    onAnnotationsChange(newList);
-    try {
-      localStorage.setItem(`histoscope_annotations_${slideId}`, JSON.stringify(newList));
-    } catch (e) {
-      console.error('Erro ao guardar anotações:', e);
-    }
-  };
+  // Persistência e carregamento vivem no App + utils/annotations (2026-09-29):
+  // este componente grava a mesma chave do localStorage que o App, e duas
+  // escritas concorrentes perdiam anotações. Aqui só se reportam alterações.
 
   const handleDeleteAnnotation = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     const updated = annotations.filter((a) => a.id !== id);
-    saveAnnotations(updated);
+    onAnnotationsChange(updated);
     if (selectedAnnotationId === id) {
       onSelectAnnotation(null);
     }
@@ -97,7 +76,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
 
   const handleUpdateAnnotation = (updated: UserAnnotation) => {
     const list = annotations.map((a) => (a.id === updated.id ? updated : a));
-    saveAnnotations(list);
+    onAnnotationsChange(list);
     setEditingAnnotation(null);
   };
 
@@ -161,7 +140,7 @@ export const AnnotationSystem: React.FC<AnnotationSystemProps> = ({
             height: item.bbox_normalized?.height_percent ?? item.height ?? 15,
             timestamp: item.timestamp || new Date().toISOString(),
           }));
-          saveAnnotations([...annotations, ...formatted]);
+          onAnnotationsChange([...annotations, ...formatted]);
         }
       } catch (err) {
         alert('Ficheiro de anotações inválido.');
